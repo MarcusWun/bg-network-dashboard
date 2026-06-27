@@ -1,5 +1,5 @@
 ; B&G Network Dashboard -- Inno Setup 6 Script
-; All dependency downloads are handled by setup.ps1 (no IDP required)
+; Dependency downloads and service configuration handled entirely by setup.ps1
 
 [Setup]
 AppName=B&G Network Dashboard
@@ -24,19 +24,6 @@ VersionInfoCompany=StratosRacing
 MinVersion=10.0
 OutputDir=..\Output
 
-[CustomMessages]
-InstallWireshark=Install Wireshark (network packet analysis, optional)
-InstallNSSM=Install NSSM -- required for Signal K to run as a Windows service
-
-[Types]
-Name: "full"; Description: "Full installation (recommended)"
-Name: "custom"; Description: "Custom installation"; Flags: iscustom
-
-[Components]
-Name: "core"; Description: "Dashboard config files and setup script"; Types: full custom; Flags: fixed
-Name: "nssm"; Description: "{cm:InstallNSSM}"; Types: full
-Name: "wireshark"; Description: "{cm:InstallWireshark}"; Types: full
-
 [Files]
 Source: "..\telegraf.toml"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\downsample_signalk.flux"; DestDir: "{app}"; Flags: ignoreversion
@@ -48,20 +35,5 @@ Source: "..\SERVICES.md"; DestDir: "{app}"; Flags: ignoreversion
 Source: "setup.ps1"; DestDir: "{app}\installer"; Flags: ignoreversion
 
 [Run]
-Filename: "powershell.exe"; Parameters: "-ExecutionPolicy Bypass -NonInteractive -File ""{app}\installer\setup.ps1"" {code:GetSetupParameters}"; StatusMsg: "Installing dependencies and configuring services (this may take 10-15 minutes)..."; Flags: runhidden waituntilterminated
-
-[UninstallDelete]
-Type: filesandsubdirs; Name: "{app}"
-
-[Code]
-function GetSetupParameters(Param: String): String;
-var
-  S: String;
-begin
-  S := '-AppDir "' + ExpandConstant('{app}') + '"';
-  if IsComponentSelected('nssm') then
-    S := S + ' -InstallNSSM';
-  if IsComponentSelected('wireshark') then
-    S := S + ' -InstallWireshark';
-  Result := S;
-end;
+Filename: "powershell.exe"; Parameters: "-ExecutionPolicy Bypass -NonInteractive -File ""{app}\installer\setup.ps1"" -AppDir ""{app}"" -InstallNSSM -InstallWireshark"; StatusMsg: "Installing dependencies and configuring services (this may take 10-15 minutes)..."; Flags: runhidden waituntilterminated
+Filename: "{sys}\cmd.exe"; Parameters: "/c start http://localhost:3001"; Description: "Open Grafana Dashboard"; Flags: postinstall nowait skipifsilent shellexec
