@@ -1,0 +1,618 @@
+{
+  "__inputs": [
+    {
+      "description": "InfluxDB 2.x datasource using Flux query language",
+      "label": "InfluxDB",
+      "name": "DS_INFLUXDB",
+      "pluginId": "influxdb",
+      "pluginName": "InfluxDB",
+      "type": "datasource"
+    },
+    {
+      "description": "Signal K REST API via JSON API datasource plugin",
+      "label": "SignalK",
+      "name": "DS_SIGNALK",
+      "pluginId": "marcusolsson-json-datasource",
+      "pluginName": "JSON API",
+      "type": "datasource"
+    }
+  ],
+  "__requires": [
+    {
+      "id": "grafana",
+      "name": "Grafana",
+      "type": "grafana",
+      "version": "10.0.0"
+    },
+    {
+      "id": "influxdb",
+      "name": "InfluxDB",
+      "type": "datasource",
+      "version": "1.0.0"
+    },
+    {
+      "id": "marcusolsson-json-datasource",
+      "name": "JSON API",
+      "type": "datasource",
+      "version": "1.0.0"
+    },
+    {
+      "id": "stat",
+      "name": "Stat",
+      "type": "panel",
+      "version": ""
+    },
+    {
+      "id": "table",
+      "name": "Table",
+      "type": "panel",
+      "version": ""
+    },
+    {
+      "id": "timeseries",
+      "name": "Time series",
+      "type": "panel",
+      "version": ""
+    },
+    {
+      "id": "state-timeline",
+      "name": "State timeline",
+      "type": "panel",
+      "version": ""
+    }
+  ],
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": { "type": "grafana", "uid": "-- Grafana --" },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "description": "Visibility into the B&G ethernet backbone — host discovery, bandwidth, NMEA 0183 sentences, and host liveness over time.",
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "id": 1,
+      "title": "Ethernet Summary",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB}" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "yellow", "value": 1 },
+              { "color": "green", "value": 3 }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 5, "w": 6, "x": 0, "y": 1 },
+      "id": 2,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "title": "Active Hosts",
+      "description": "Unique IP addresses seen via ARP scan in the last 60 seconds",
+      "targets": [
+        {
+          "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB}" },
+          "query": "from(bucket: \"telegraf\")\n  |> range(start: -60s)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"arp\" or r[\"_measurement\"] == \"exec_arp\")\n  |> filter(fn: (r) => exists r.ip_address or exists r[\"IP_Address\"])\n  |> keep(columns: [\"ip_address\", \"IP_Address\"])\n  |> distinct(column: \"ip_address\")\n  |> count()\n  |> map(fn: (r) => ({_value: float(v: r._value), _time: now()}))",
+          "refId": "A"
+        }
+      ],
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB}" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "yellow", "value": 0.1 },
+              { "color": "green", "value": 1 }
+            ]
+          },
+          "unit": "Bps",
+          "decimals": 1
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 5, "w": 6, "x": 6, "y": 1 },
+      "id": 3,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "title": "Total Bandwidth",
+      "description": "Sum of inbound + outbound bytes/sec on the NIC connected to the GoFree network",
+      "targets": [
+        {
+          "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB}" },
+          "query": "inbound = from(bucket: \"telegraf\")\n  |> range(start: -10s)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"net\")\n  |> filter(fn: (r) => r[\"_field\"] == \"bytes_recv\")\n  |> derivative(unit: 1s, nonNegative: true)\n  |> group()\n  |> sum()\n\noutbound = from(bucket: \"telegraf\")\n  |> range(start: -10s)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"net\")\n  |> filter(fn: (r) => r[\"_field\"] == \"bytes_sent\")\n  |> derivative(unit: 1s, nonNegative: true)\n  |> group()\n  |> sum()\n\nunion(tables: [inbound, outbound])\n  |> group()\n  |> sum()",
+          "refId": "A"
+        }
+      ],
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB}" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "yellow", "value": 0.5 },
+              { "color": "green", "value": 2 }
+            ]
+          },
+          "unit": "reqps",
+          "decimals": 2
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 5, "w": 6, "x": 12, "y": 1 },
+      "id": 4,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "title": "NMEA 0183 Rate",
+      "description": "Sentence count/sec from H5000 TCP stream (port 10110)",
+      "targets": [
+        {
+          "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB}" },
+          "query": "from(bucket: \"signalk\")\n  |> range(start: -10s)\n  |> filter(fn: (r) => exists r.sentence)\n  |> group()\n  |> count()\n  |> map(fn: (r) => ({_value: float(v: r._value) / 10.0, _time: now()}))",
+          "refId": "A"
+        }
+      ],
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB}" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "mappings": [
+            { "options": { "0": { "color": "red", "text": "No Data" } }, "type": "value" }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "yellow", "value": 1 },
+              { "color": "green", "value": 30 }
+            ]
+          },
+          "unit": "s",
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 5, "w": 6, "x": 18, "y": 1 },
+      "id": 5,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "title": "Signal K Uptime",
+      "description": "Elapsed time since Signal K last wrote data to InfluxDB. Red = no writes in 30s (data gap).",
+      "targets": [
+        {
+          "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB}" },
+          "query": "import \"date\"\n\nfrom(bucket: \"signalk\")\n  |> range(start: -5m)\n  |> group()\n  |> last()\n  |> map(fn: (r) => ({\n      _value: float(v: uint(v: now()) - uint(v: r._time)) / 1000000000.0,\n      _time: now()\n    }))",
+          "refId": "A"
+        }
+      ],
+      "type": "stat"
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 6 },
+      "id": 10,
+      "title": "Ethernet Host Table",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB}" },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "cellOptions": { "type": "auto" },
+            "filterable": true,
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [{ "color": "green", "value": null }]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "ip_address" },
+            "properties": [
+              { "id": "displayName", "value": "IP Address" },
+              { "id": "custom.width", "value": 140 }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "deviceName" },
+            "properties": [
+              { "id": "displayName", "value": "Device Name" },
+              { "id": "custom.width", "value": 200 },
+              {
+                "id": "mappings",
+                "value": [
+                  { "options": { "192.168.0.1": { "text": "GoFree Router" } }, "type": "value" },
+                  { "options": { "192.168.0.2": { "text": "H5000 CPU" } }, "type": "value" },
+                  { "options": { "192.168.0.3": { "text": "Zeus 3S Chartplotter" } }, "type": "value" },
+                  { "options": { "192.168.0.10": { "text": "Geekom A9 Mini PC" } }, "type": "value" }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "mac_address" },
+            "properties": [
+              { "id": "displayName", "value": "MAC Address" },
+              { "id": "custom.width", "value": 160 }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "_time" },
+            "properties": [
+              { "id": "displayName", "value": "Last Seen" },
+              { "id": "unit", "value": "dateTimeAsIso" },
+              { "id": "custom.width", "value": 180 }
+            ]
+          }
+        ]
+      },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 7 },
+      "id": 11,
+      "options": {
+        "cellHeight": "sm",
+        "footer": { "countRows": true, "enablePagination": false, "show": true, "reducer": ["count"] },
+        "showHeader": true,
+        "sortBy": [{ "desc": false, "displayName": "IP Address" }]
+      },
+      "title": "Ethernet Hosts — GoFree Network",
+      "description": "All hosts discovered via ARP scan (Telegraf inputs.exec running arp -a every 30s). Device Name column uses value mappings — populate IP → name after initial discovery.",
+      "targets": [
+        {
+          "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB}" },
+          "query": "from(bucket: \"telegraf\")\n  |> range(start: -60s)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"arp\" or r[\"_measurement\"] == \"exec_arp\")\n  |> group(columns: [\"ip_address\", \"mac_address\"])\n  |> last()\n  |> keep(columns: [\"ip_address\", \"mac_address\", \"_time\"])",
+          "refId": "A"
+        }
+      ],
+      "type": "table"
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 15 },
+      "id": 20,
+      "title": "NMEA 0183 Sentence Monitor",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB}" },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "cellOptions": { "type": "auto" },
+            "filterable": true,
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [{ "color": "green", "value": null }]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "sentence" },
+            "properties": [
+              { "id": "displayName", "value": "Talker + Sentence ID" },
+              { "id": "custom.width", "value": 160 },
+              { "id": "custom.filterable", "value": true }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "description" },
+            "properties": [
+              { "id": "displayName", "value": "Description" },
+              { "id": "custom.width", "value": 240 },
+              {
+                "id": "mappings",
+                "value": [
+                  { "options": { "IIMWV": { "text": "Wind Speed & Angle" } }, "type": "value" },
+                  { "options": { "IIVHW": { "text": "Water Speed & Heading" } }, "type": "value" },
+                  { "options": { "IIVWR": { "text": "Relative Wind" } }, "type": "value" },
+                  { "options": { "IIVWT": { "text": "True Wind" } }, "type": "value" },
+                  { "options": { "IIDBT": { "text": "Depth Below Transducer" } }, "type": "value" },
+                  { "options": { "IIDPT": { "text": "Depth" } }, "type": "value" },
+                  { "options": { "IIHDT": { "text": "Heading True" } }, "type": "value" },
+                  { "options": { "IIHDG": { "text": "Heading Magnetic" } }, "type": "value" },
+                  { "options": { "IIXDR": { "text": "Transducer Measurement" } }, "type": "value" },
+                  { "options": { "GPGGA": { "text": "GPS Fix Data" } }, "type": "value" },
+                  { "options": { "GPRMC": { "text": "GPS Recommended Minimum" } }, "type": "value" },
+                  { "options": { "GPGLL": { "text": "GPS Lat/Lon" } }, "type": "value" },
+                  { "options": { "GPVTG": { "text": "GPS Track Made Good" } }, "type": "value" },
+                  { "options": { "GPZDA": { "text": "GPS Date & Time" } }, "type": "value" },
+                  { "options": { "GPGSV": { "text": "GPS Satellites in View" } }, "type": "value" },
+                  { "options": { "IIRSA": { "text": "Rudder Sensor Angle" } }, "type": "value" },
+                  { "options": { "IIRPM": { "text": "RPM" } }, "type": "value" },
+                  { "options": { "AIABK": { "text": "AIS Addressed Binary Ack" } }, "type": "value" },
+                  { "options": { "AIVDM": { "text": "AIS VHF Data-Link Message" } }, "type": "value" },
+                  { "options": { "AIVDO": { "text": "AIS VHF Data-Link Own Vessel" } }, "type": "value" }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "rate" },
+            "properties": [
+              { "id": "displayName", "value": "Rate (Hz)" },
+              { "id": "unit", "value": "hertz" },
+              { "id": "decimals", "value": 3 },
+              { "id": "custom.width", "value": 90 }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "_value" },
+            "properties": [
+              { "id": "displayName", "value": "Last Raw Value" },
+              { "id": "custom.width", "value": 300 }
+            ]
+          }
+        ]
+      },
+      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 16 },
+      "id": 21,
+      "options": {
+        "cellHeight": "sm",
+        "footer": { "countRows": true, "enablePagination": true, "show": true, "reducer": ["count"] },
+        "showHeader": true,
+        "sortBy": [{ "desc": false, "displayName": "Talker + Sentence ID" }]
+      },
+      "title": "NMEA 0183 Sentences — H5000 TCP (port 10110)",
+      "description": "Every sentence type flowing from the H5000 CPU. Fully dynamic — new sentence types appear automatically. Compare against N2K PGNs to verify H5000 conversion.",
+      "targets": [
+        {
+          "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB}" },
+          "query": "from(bucket: \"signalk\")\n  |> range(start: -60s)\n  |> filter(fn: (r) => exists r.sentence)\n  |> group(columns: [\"sentence\"])\n  |> reduce(\n      fn: (r, accumulator) => ({msgCount: accumulator.msgCount + 1, _value: string(v: r._value), _time: r._time}),\n      identity: {msgCount: 0, _value: \"\", _time: 1970-01-01T00:00:00Z}\n    )\n  |> map(fn: (r) => ({r with rate: float(v: r.msgCount) / 60.0}))",
+          "refId": "A"
+        }
+      ],
+      "type": "table"
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 26 },
+      "id": 30,
+      "title": "Bandwidth Timeline",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB}" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "Mbps",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 20,
+            "gradientMode": "none",
+            "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": { "type": "linear" },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": { "group": "A", "mode": "none" },
+            "thresholdsStyle": { "mode": "off" }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [{ "color": "green", "value": null }]
+          },
+          "unit": "Mbits",
+          "decimals": 3
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "Inbound" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "blue", "mode": "fixed" } }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Outbound" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "orange", "mode": "fixed" } }]
+          }
+        ]
+      },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 27 },
+      "id": 31,
+      "options": {
+        "legend": {
+          "calcs": ["mean", "max", "last"],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      },
+      "title": "Interface Bandwidth — Last 60 min",
+      "description": "Aggregate inbound/outbound bandwidth on NIC connected to GoFree network, 10s windows (Telegraf inputs.net). Spikes indicate chart tile downloads, firmware updates, or broadcast storms.",
+      "targets": [
+        {
+          "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB}" },
+          "query": "from(bucket: \"telegraf\")\n  |> range(start: -60m)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"net\")\n  |> filter(fn: (r) => r[\"_field\"] == \"bytes_recv\")\n  |> group(columns: [\"interface\"])\n  |> aggregateWindow(every: 10s, fn: last, createEmpty: false)\n  |> derivative(unit: 1s, nonNegative: true)\n  |> map(fn: (r) => ({r with _value: r._value * 8.0 / 1000000.0}))\n  |> group()\n  |> sum()\n  |> set(key: \"_field\", value: \"Inbound\")",
+          "refId": "A"
+        },
+        {
+          "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB}" },
+          "query": "from(bucket: \"telegraf\")\n  |> range(start: -60m)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"net\")\n  |> filter(fn: (r) => r[\"_field\"] == \"bytes_sent\")\n  |> group(columns: [\"interface\"])\n  |> aggregateWindow(every: 10s, fn: last, createEmpty: false)\n  |> derivative(unit: 1s, nonNegative: true)\n  |> map(fn: (r) => ({r with _value: r._value * 8.0 / 1000000.0}))\n  |> group()\n  |> sum()\n  |> set(key: \"_field\", value: \"Outbound\")",
+          "refId": "B"
+        }
+      ],
+      "type": "timeseries"
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 35 },
+      "id": 40,
+      "title": "Host Liveness Status",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB}" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "custom": {
+            "fillOpacity": 80,
+            "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+            "insertNulls": false,
+            "lineWidth": 0,
+            "spanNulls": false
+          },
+          "mappings": [
+            { "options": { "0": { "color": "red", "text": "Down" } }, "type": "value" },
+            { "options": { "from": 0.001, "result": { "color": "green", "text": "Up" }, "to": 9999 }, "type": "range" }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "green", "value": 0.001 }
+            ]
+          },
+          "unit": "ms",
+          "decimals": 1
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byFrameRefID", "options": "A" },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "${__field.labels.url}"
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 36 },
+      "id": 41,
+      "options": {
+        "alignValue": "center",
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "mergeValues": true,
+        "rowHeight": 0.9,
+        "showValue": "never",
+        "tooltip": { "mode": "single", "sort": "none" }
+      },
+      "title": "Host Liveness — Last 60 min",
+      "description": "Online/offline state per known B&G host (Telegraf inputs.ping, 10s interval). Green = responding, Red = not responding. Configure host IPs in telegraf.toml [inputs.ping] urls.",
+      "targets": [
+        {
+          "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB}" },
+          "query": "from(bucket: \"telegraf\")\n  |> range(start: -60m)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"ping\")\n  |> filter(fn: (r) => r[\"_field\"] == \"average_response_ms\")\n  |> group(columns: [\"url\"])\n  |> aggregateWindow(every: 10s, fn: mean, createEmpty: true)\n  |> map(fn: (r) => ({r with _value: if not exists r._value then 0.0 else r._value}))",
+          "refId": "A"
+        }
+      ],
+      "type": "state-timeline"
+    }
+  ],
+  "refresh": "10s",
+  "schemaVersion": 39,
+  "tags": ["ethernet", "network", "bg", "diagnostics", "marine", "nmea0183"],
+  "templating": {
+    "list": []
+  },
+  "time": { "from": "now-1h", "to": "now" },
+  "timepicker": {
+    "refresh_intervals": ["10s", "30s", "1m", "5m"],
+    "time_options": ["15m", "1h", "3h", "6h", "12h", "24h"]
+  },
+  "timezone": "browser",
+  "title": "Ethernet Network Monitor",
+  "uid": "bg-eth-monitor-v1",
+  "version": 1,
+  "weekStart": ""
+}

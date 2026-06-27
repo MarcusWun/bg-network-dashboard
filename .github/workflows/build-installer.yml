@@ -1,0 +1,51 @@
+name: Build Windows Installer
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build Inno Setup Installer
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Inno Setup 6
+        run: choco install innosetup -y
+
+      - name: Install Inno Download Plugin
+        shell: powershell
+        run: |
+          $idpUrl = "https://github.com/nicjansma/inern-download-plugin-for-inno-setup-6/releases/download/v6.1.1/idpsetup-6.1.1.exe"
+          $idpFallbackUrl = "https://mitrichsoftware.wordpress.com/inno-setup-tools/inno-download-plugin/"
+          # Try to download and install the IDP plugin
+          $idpZipUrl = "https://github.com/nicjansma/inern-download-plugin-for-inno-setup-6/archive/refs/heads/master.zip"
+          # Use choco if available
+          choco install inno-download-plugin -y 2>$null
+          if ($LASTEXITCODE -ne 0) {
+            Write-Host "Choco install failed, downloading IDP manually..."
+            $innoDir = "${env:ProgramFiles(x86)}\Inno Setup 6"
+            # Download IDP release
+            Invoke-WebRequest -Uri "https://github.com/nicjansma/inern-download-plugin-for-inno-setup-6/releases/latest/download/idp.zip" -OutFile "$env:TEMP\idp.zip"
+            Expand-Archive -Path "$env:TEMP\idp.zip" -DestinationPath "$innoDir" -Force
+          }
+
+      - name: Compile installer
+        shell: cmd
+        run: |
+          "%ProgramFiles(x86)%\Inno Setup 6\ISCC.exe" installer\bg-dashboard-installer.iss
+
+      - name: List output
+        shell: cmd
+        run: dir Output
+
+      - name: Upload installer artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: bg-dashboard-windows-installer
+          path: Output/*.exe
+          retention-days: 90

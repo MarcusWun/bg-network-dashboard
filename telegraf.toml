@@ -1,0 +1,89 @@
+# telegraf.toml — B&G Network Diagnostics Dashboard
+# Telegraf configuration for ethernet monitoring, host discovery, and ping liveness.
+#
+# SETUP REQUIRED:
+#   1. Fill in your InfluxDB token after InfluxDB is installed (see [[outputs.influxdb_v2]])
+#      The installer will generate and inject this token automatically.
+#
+# Install as a Windows service: telegraf --service install --config telegraf.toml
+
+# ---------------------------------------------------------------------------
+# [agent] — global Telegraf settings
+# ---------------------------------------------------------------------------
+[agent]
+  interval          = "10s"   # how often to collect metrics
+  round_interval    = true
+  metric_batch_size = 1000
+  metric_buffer_limit = 10000
+  collection_jitter = "0s"
+  flush_interval    = "10s"   # how often to write to InfluxDB
+  flush_jitter      = "0s"
+  precision         = ""
+  debug             = false
+  quiet             = false
+  hostname          = ""
+  omit_hostname     = false
+
+# ---------------------------------------------------------------------------
+# [[outputs.influxdb_v2]] — write metrics to local InfluxDB
+# ---------------------------------------------------------------------------
+# CUSTOMIZE: fill in your token, org, and bucket from your InfluxDB setup.
+# InfluxDB UI → Data → API Tokens → Generate
+[[outputs.influxdb_v2]]
+  urls         = ["http://localhost:8086"]
+  token        = "YOUR_INFLUXDB_API_TOKEN_HERE"   # injected by installer
+  organization = "StratosRacing"
+  bucket       = "telegraf"
+
+# ---------------------------------------------------------------------------
+# [[inputs.net]] — ethernet interface traffic metrics
+# ---------------------------------------------------------------------------
+# Provides aggregate inbound/outbound bytes/sec for the NIC connected to
+# the GoFree router. Used by Grafana's Bandwidth Timeline panel.
+#
+# CUSTOMIZE: replace "Ethernet" with your actual interface name.
+# On Windows, run: telegraf --input-filter net --test
+# to see available interface names (look for your GoFree-connected adapter).
+#
+# Common Windows interface names: "Ethernet", "Ethernet 2", "Local Area Connection"
+[[inputs.net]]
+  interfaces = ["Ethernet"]
+
+# ---------------------------------------------------------------------------
+# [[inputs.ping]] — liveness check for known B&G ethernet devices
+# ---------------------------------------------------------------------------
+# Pings each known B&G device every 10 seconds. Used by the Host Liveness
+# State Timeline panel in the Ethernet Network Monitor dashboard.
+[[inputs.ping]]
+  urls         = [
+    "192.168.1.1",    # B&G GoFree Router
+    "192.168.1.233",  # B&G H5000 CPU (also hosts NMEA 0183 TCP on port 10110)
+    "192.168.1.219",  # B&G Zeus 3S Chartplotter
+  ]
+  count           = 3       # pings per interval
+  ping_interval   = 1.0     # seconds between individual pings
+  timeout         = 5.0     # seconds before declaring a host unreachable
+  deadline        = 10      # total seconds before giving up
+  method          = "native" # use native ping on Windows (no raw socket required)
+
+# ---------------------------------------------------------------------------
+# [[inputs.exec]] — ARP host discovery scan
+# ---------------------------------------------------------------------------
+# Runs `arp -a` every 30 seconds to enumerate all hosts on the GoFree network.
+# The output is stored as raw text in InfluxDB and parsed by Grafana's
+# transform layer (or a Flux query) to produce the Ethernet Host Table.
+#
+# The `arp -a` command on Windows prints lines like:
+#   192.168.0.1    00-11-22-33-44-55    dynamic
+#
+# NOTE: `arp -a` only shows hosts that have been communicated with recently.
+# For more reliable discovery, use `arp -a` after pinging the subnet broadcast
+# address (e.g., `ping 192.168.0.255`) or configure inputs.ping above to
+# keep the ARP cache populated.
+[[inputs.exec]]
+  commands       = ["arp -a"]
+  interval       = "30s"    # run ARP scan every 30 seconds
+  timeout        = "10s"
+  data_format    = "value"
+  data_type      = "string"
+  name_override  = "arp_scan"
