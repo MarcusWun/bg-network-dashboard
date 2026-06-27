@@ -51,7 +51,7 @@ Source: "setup.ps1"; DestDir: "{app}\installer"; Flags: ignoreversion
 Filename: "powershell.exe"; Parameters: "-ExecutionPolicy Bypass -NonInteractive -File ""{app}\installer\setup.ps1"" {code:GetSetupParameters}"; StatusMsg: "Installing dependencies and configuring services (this may take 10-15 minutes)..."; Flags: runhidden waituntilterminated
 
 [UninstallDelete]
-Type: filesandirs; Name: "{app}"
+Type: filesandsubdirs; Name: "{app}"
 
 [Code]
 function GetSetupParameters(Param: String): String;
