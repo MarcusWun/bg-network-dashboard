@@ -17,22 +17,6 @@ jobs:
       - name: Install Inno Setup 6
         run: choco install innosetup -y
 
-      - name: Install Inno Download Plugin
-        shell: powershell
-        run: |
-          $innoDir = "${env:ProgramFiles(x86)}\Inno Setup 6"
-          choco install inno-download-plugin -y
-          # choco puts IDP in its own lib dir, not the Inno Setup dir.
-          # Find idp.iss and copy everything from that folder into the Inno Setup root.
-          $idpIss = Get-ChildItem -Path "C:\ProgramData\chocolatey\lib" -Filter "idp.iss" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
-          if ($idpIss) {
-            Write-Host "Found IDP at $($idpIss.FullName) — copying to $innoDir"
-            Copy-Item -Path "$($idpIss.Directory.FullName)\*" -Destination $innoDir -Force
-          } else {
-            Write-Error "idp.iss not found in chocolatey lib after install"
-            exit 1
-          }
-
       - name: Compile installer
         shell: cmd
         run: |

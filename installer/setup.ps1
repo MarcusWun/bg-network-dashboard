@@ -9,7 +9,9 @@
 #>
 param(
     [Parameter(Mandatory = $true)]
-    [string]$AppDir
+    [string]$AppDir,
+    [switch]$InstallNSSM,
+    [switch]$InstallWireshark
 )
 
 $ErrorActionPreference = "Stop"
@@ -103,6 +105,164 @@ function Invoke-GrafanaApi {
             Write-Host "  Grafana API not ready, retrying in ${wait}s... (attempt $attempt/$MaxRetries)"
             Start-Sleep -Seconds $wait
         }
+    }
+}
+
+# ============================================================
+# Download helpers
+# ============================================================
+function Get-Download {
+    param([string]$Url, [string]$Dest)
+    Write-Host "  Downloading $(Split-Path $Url -Leaf)..."
+    Invoke-WebRequest -Uri $Url -OutFile $Dest -UseBasicParsing
+}
+
+function Install-Msi {
+    param([string]$MsiPath, [string]$Description)
+    Write-Host "  Installing $Description..."
+    $proc = Start-Process msiexec.exe -ArgumentList "/i `"$MsiPath`" /qn /norestart" -Wait -PassThru
+    if ($proc.ExitCode -notin @(0, 3010)) {
+        throw "$Description installer exited with code $($proc.ExitCode)"
+    }
+    Write-Host "  $Description installed."
+}
+
+$TmpDir = $env:TEMP
+
+# ============================================================
+# Phase 0: Download and install dependencies
+# ============================================================
+
+Write-Step "Phase 0: Installing Node.js 20 LTS"
+try {
+    $nodeVersion = & node --version 2>$null
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host "  Node.js already installed: $nodeVersion"
+    } else {
+        throw "not found"
+    }
+} catch {
+    $nodeMsi = Join-Path $TmpDir "node-v20.19.0-x64.msi"
+    Get-Download "https://nodejs.org/dist/v20.19.0/node-v20.19.0-x64.msi" $nodeMsi
+    Install-Msi $nodeMsi "Node.js 20 LTS"
+    # Refresh PATH
+    $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
+}
+
+Write-Step "Phase 0: Installing InfluxDB 2.x"
+try {
+    if (Get-Service influxdb -ErrorAction SilentlyContinue) {
+        Write-Host "  InfluxDB service already present."
+    } else {
+        $influxZip = Join-Path $TmpDir "influxdb2-windows.zip"
+        Get-Download "https://dl.influxdata.com/influxdb/releases/influxdb2-2.7.6-windows.zip" $influxZip
+        $influxDir = "C:\Program Files\InfluxData\influxdb"
+        New-Item -ItemType Directory -Path $influxDir -Force | Out-Null
+        Expand-Archive -Path $influxZip -DestinationPath $influxDir -Force
+        # Move contents out of the versioned subfolder
+        Get-ChildItem "$influxDir\influxdb2-*" -Directory | ForEach-Object {
+            Get-ChildItem $_.FullName | Move-Item -Destination $influxDir -Force
+            Remove-Item $_.FullName -Force -ErrorAction SilentlyContinue
+        }
+        # Add to system PATH
+        $mp = [System.Environment]::GetEnvironmentVariable("Path","Machine")
+        if ($mp -notlike "*InfluxData\influxdb*") {
+            [System.Environment]::SetEnvironmentVariable("Path","$mp;$influxDir","Machine")
+            $env:Path = "$env:Path;$influxDir"
+        }
+        # Register as a service
+        & "$influxDir\influxd.exe" service install 2>&1 | Out-Null
+        Start-Service influxdb -ErrorAction SilentlyContinue
+        Write-Host "  InfluxDB installed and service started."
+    }
+} catch {
+    Write-Host "  ERROR installing InfluxDB: $_" -ForegroundColor Red
+    throw
+}
+
+Write-Step "Phase 0: Installing Grafana"
+try {
+    if (Get-Service Grafana -ErrorAction SilentlyContinue) {
+        Write-Host "  Grafana service already present."
+    } else {
+        $grafanaMsi = Join-Path $TmpDir "grafana-11.6.0.msi"
+        Get-Download "https://dl.grafana.com/oss/release/grafana-11.6.0.windows-amd64.msi" $grafanaMsi
+        Install-Msi $grafanaMsi "Grafana"
+        # Change port to 3001 and bind to 0.0.0.0
+        $grafanaIni = "C:\Program Files\GrafanaLabs\grafana\conf\defaults.ini"
+        if (Test-Path $grafanaIni) {
+            $ini = Get-Content $grafanaIni -Raw
+            $ini = $ini -replace "(?m)^http_port\s*=\s*3000", "http_port = 3001"
+            $ini = $ini -replace "(?m)^http_addr\s*=\s*$", "http_addr = 0.0.0.0"
+            Set-Content $grafanaIni $ini -NoNewline
+        }
+        Start-Service Grafana -ErrorAction SilentlyContinue
+        Write-Host "  Grafana installed on port 3001."
+    }
+} catch {
+    Write-Host "  ERROR installing Grafana: $_" -ForegroundColor Red
+    throw
+}
+
+Write-Step "Phase 0: Installing Telegraf"
+try {
+    if (Get-Service telegraf -ErrorAction SilentlyContinue) {
+        Write-Host "  Telegraf service already present."
+    } else {
+        $telegrafZip = Join-Path $TmpDir "telegraf-windows.zip"
+        Get-Download "https://dl.influxdata.com/telegraf/releases/telegraf-1.33.0_windows_amd64.zip" $telegrafZip
+        $telegrafDir = "C:\telegraf"
+        New-Item -ItemType Directory -Path $telegrafDir -Force | Out-Null
+        Expand-Archive -Path $telegrafZip -DestinationPath $telegrafDir -Force
+        # Move contents out of versioned subfolder
+        Get-ChildItem "$telegrafDir\telegraf-*" -Directory | ForEach-Object {
+            Get-ChildItem $_.FullName | Move-Item -Destination $telegrafDir -Force
+            Remove-Item $_.FullName -Force -ErrorAction SilentlyContinue
+        }
+        Write-Host "  Telegraf extracted to $telegrafDir."
+    }
+} catch {
+    Write-Host "  ERROR installing Telegraf: $_" -ForegroundColor Red
+    throw
+}
+
+if ($InstallNSSM) {
+    Write-Step "Phase 0: Installing NSSM"
+    try {
+        $nssmExe = "C:\nssm\nssm.exe"
+        if (Test-Path $nssmExe) {
+            Write-Host "  NSSM already installed."
+        } else {
+            $nssmZip = Join-Path $TmpDir "nssm-2.24.zip"
+            Get-Download "https://nssm.cc/release/nssm-2.24.zip" $nssmZip
+            $nssmDir = "C:\nssm"
+            New-Item -ItemType Directory -Path $nssmDir -Force | Out-Null
+            Expand-Archive -Path $nssmZip -DestinationPath $nssmDir -Force
+            # Move win64 binary to C:\nssm\
+            Get-ChildItem "$nssmDir\nssm-*\win64\nssm.exe" | Move-Item -Destination $nssmDir -Force
+            # Clean up subdirs
+            Get-ChildItem "$nssmDir\nssm-*" -Directory | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
+            $mp = [System.Environment]::GetEnvironmentVariable("Path","Machine")
+            if ($mp -notlike "*C:\nssm*") {
+                [System.Environment]::SetEnvironmentVariable("Path","$mp;C:\nssm","Machine")
+                $env:Path = "$env:Path;C:\nssm"
+            }
+            Write-Host "  NSSM installed to $nssmDir."
+        }
+    } catch {
+        Write-Host "  WARNING: NSSM install failed: $_" -ForegroundColor Yellow
+    }
+}
+
+if ($InstallWireshark) {
+    Write-Step "Phase 0: Installing Wireshark"
+    try {
+        $wsExe = Join-Path $TmpDir "Wireshark-latest-x64.exe"
+        Get-Download "https://2.na.dl.wireshark.org/win64/Wireshark-latest-x64.exe" $wsExe
+        $proc = Start-Process $wsExe -ArgumentList "/S" -Wait -PassThru
+        Write-Host "  Wireshark installed (exit code $($proc.ExitCode))."
+    } catch {
+        Write-Host "  WARNING: Wireshark install failed: $_" -ForegroundColor Yellow
     }
 }
 
@@ -228,26 +388,17 @@ try {
 }
 
 # ============================================================
-# Step 7: Install Node.js if not present
+# Step 7: Verify Node.js (installed in Phase 0)
 # ============================================================
-Write-Step "Step 7: Checking Node.js installation"
+Write-Step "Step 7: Verifying Node.js"
 try {
+    # Refresh PATH in case Node.js was just installed
+    $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
     $nodeVersion = & node --version 2>&1
-    Write-Host "  Node.js already installed: $nodeVersion"
+    Write-Host "  Node.js: $nodeVersion"
 } catch {
-    Write-Host "  Node.js not found in PATH. It should have been installed by the Inno Setup installer."
-    Write-Host "  If Node.js was just installed, PATH may not be updated in this session."
-    # Refresh PATH
-    $machinePath = [System.Environment]::GetEnvironmentVariable("Path", "Machine")
-    $userPath = [System.Environment]::GetEnvironmentVariable("Path", "User")
-    $env:Path = "$machinePath;$userPath"
-    try {
-        $nodeVersion = & node --version 2>&1
-        Write-Host "  Node.js found after PATH refresh: $nodeVersion"
-    } catch {
-        Write-Host "  ERROR: Node.js still not found. Please install manually." -ForegroundColor Red
-        throw
-    }
+    Write-Host "  ERROR: Node.js not found. Phase 0 install may have failed." -ForegroundColor Red
+    throw
 }
 
 # ============================================================
