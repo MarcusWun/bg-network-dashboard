@@ -458,16 +458,10 @@ if (Test-Path $skSettingsPath) {
       "id": "NGT-1",
       "pipeElements": [
         {
-          "type": "providers/serialport",
+          "type": "providers/actisense-serial",
           "options": {
             "device": "COM3",
             "baudrate": 115200
-          }
-        },
-        {
-          "type": "providers/nmea2000",
-          "options": {
-            "type": "iKonvert"
           }
         }
       ]
