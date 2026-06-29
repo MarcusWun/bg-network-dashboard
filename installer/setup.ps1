@@ -188,15 +188,13 @@ try {
         $grafanaMsi = Join-Path $TmpDir "grafana-11.6.0.msi"
         Get-Download "https://dl.grafana.com/oss/release/grafana-11.6.0.windows-amd64.msi" $grafanaMsi
         Install-Msi $grafanaMsi "Grafana"
-        # Change port to 3001 and bind to 0.0.0.0
-        $grafanaIni = "C:\Program Files\GrafanaLabs\grafana\conf\defaults.ini"
-        if (Test-Path $grafanaIni) {
-            $ini = Get-Content $grafanaIni -Raw
-            $ini = $ini -replace "(?m)^http_port\s*=\s*3000", "http_port = 3001"
-            $ini = $ini -replace "(?m)^http_addr\s*=\s*$", "http_addr = 0.0.0.0"
-            Set-Content $grafanaIni $ini -NoNewline
-        }
-        Start-Service Grafana -ErrorAction SilentlyContinue
+        # Write custom.ini to override port — always takes precedence over defaults.ini
+        $grafanaCustomIni = "C:\Program Files\GrafanaLabs\grafana\conf\custom.ini"
+        "[server]`nhttp_port = 3001`nhttp_addr = 0.0.0.0" | Set-Content $grafanaCustomIni
+        Write-Host "  Grafana custom.ini written (port 3001, bind 0.0.0.0)."
+        # Detect service name — Grafana installer uses different names across versions
+        $grafanaSvcName = @("GrafanaLabs.Grafana","Grafana") | Where-Object { Get-Service $_ -ErrorAction SilentlyContinue } | Select-Object -First 1
+        if ($grafanaSvcName) { Start-Service $grafanaSvcName -ErrorAction SilentlyContinue }
         Write-Host "  Grafana installed on port 3001."
     }
 } catch {
@@ -574,9 +572,10 @@ try {
 # ============================================================
 Write-Step "Step 14: Waiting for Grafana service"
 try {
-    $grafanaSvc = Get-Service -Name "Grafana" -ErrorAction SilentlyContinue
-    if ($grafanaSvc -and $grafanaSvc.Status -ne "Running") {
-        Start-Service Grafana
+    $grafanaSvcName = @("GrafanaLabs.Grafana","Grafana") | Where-Object { Get-Service $_ -ErrorAction SilentlyContinue } | Select-Object -First 1
+    if ($grafanaSvcName) {
+        $grafanaSvc = Get-Service $grafanaSvcName
+        if ($grafanaSvc.Status -ne "Running") { Start-Service $grafanaSvcName }
     }
     Wait-ForUrl -Url "http://localhost:3001/api/health" -TimeoutSeconds 120
 } catch {
@@ -757,7 +756,8 @@ try {
 # ============================================================
 Write-Step "Step 20: Starting all services"
 
-$services = @("influxdb", "telegraf", "signalk", "Grafana")
+$grafanaSvcNameFinal = @("GrafanaLabs.Grafana","Grafana") | Where-Object { Get-Service $_ -ErrorAction SilentlyContinue } | Select-Object -First 1
+$services = @("influxdb", "telegraf", "signalk", $grafanaSvcNameFinal) | Where-Object { $_ }
 foreach ($svc in $services) {
     try {
         $service = Get-Service -Name $svc -ErrorAction SilentlyContinue

@@ -65,7 +65,10 @@
     "list": [
       {
         "builtIn": 1,
-        "datasource": { "type": "grafana", "uid": "-- Grafana --" },
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
         "enable": true,
         "hide": true,
         "iconColor": "rgba(0, 211, 255, 1)",
@@ -74,7 +77,7 @@
       }
     ]
   },
-  "description": "Live diagnostics for the NMEA 2000 CAN bus — device discovery, PGN traffic, message rates, AIS targets, and bus load.",
+  "description": "Live diagnostics for the NMEA 2000 CAN bus \u2014 device discovery, PGN traffic, message rates, AIS targets, and bus load.",
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 1,
@@ -83,29 +86,50 @@
   "panels": [
     {
       "collapsed": false,
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
       "id": 1,
       "title": "Network Health Summary",
       "type": "row"
     },
     {
-      "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB}" },
+      "datasource": {
+        "type": "influxdb",
+        "uid": "${DS_INFLUXDB}"
+      },
       "fieldConfig": {
         "defaults": {
-          "color": { "mode": "thresholds" },
+          "color": {
+            "mode": "thresholds"
+          },
           "mappings": [],
           "thresholds": {
             "mode": "absolute",
             "steps": [
-              { "color": "red", "value": null },
-              { "color": "green", "value": 1 }
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 1
+              }
             ]
           },
           "unit": "short"
         },
         "overrides": []
       },
-      "gridPos": { "h": 5, "w": 6, "x": 0, "y": 1 },
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 0,
+        "y": 1
+      },
       "id": 2,
       "options": {
         "colorMode": "background",
@@ -113,7 +137,9 @@
         "justifyMode": "center",
         "orientation": "auto",
         "reduceOptions": {
-          "calcs": ["lastNotNull"],
+          "calcs": [
+            "lastNotNull"
+          ],
           "fields": "",
           "values": false
         },
@@ -123,7 +149,10 @@
       "description": "Unique PGN numbers seen on the bus in the last 30 seconds",
       "targets": [
         {
-          "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB}" },
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${DS_INFLUXDB}"
+          },
           "query": "from(bucket: \"signalk\")\n  |> range(start: -30s)\n  |> filter(fn: (r) => exists r.pgn)\n  |> keep(columns: [\"pgn\"])\n  |> distinct(column: \"pgn\")\n  |> count()\n  |> map(fn: (r) => ({_value: float(v: r._value), _time: now()}))",
           "refId": "A"
         }
@@ -131,24 +160,43 @@
       "type": "stat"
     },
     {
-      "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB}" },
+      "datasource": {
+        "type": "influxdb",
+        "uid": "${DS_INFLUXDB}"
+      },
       "fieldConfig": {
         "defaults": {
-          "color": { "mode": "thresholds" },
+          "color": {
+            "mode": "thresholds"
+          },
           "mappings": [],
           "thresholds": {
             "mode": "absolute",
             "steps": [
-              { "color": "red", "value": null },
-              { "color": "yellow", "value": 1 },
-              { "color": "green", "value": 5 }
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 1
+              },
+              {
+                "color": "green",
+                "value": 5
+              }
             ]
           },
           "unit": "short"
         },
         "overrides": []
       },
-      "gridPos": { "h": 5, "w": 6, "x": 6, "y": 1 },
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 6,
+        "y": 1
+      },
       "id": 3,
       "options": {
         "colorMode": "background",
@@ -156,7 +204,9 @@
         "justifyMode": "center",
         "orientation": "auto",
         "reduceOptions": {
-          "calcs": ["lastNotNull"],
+          "calcs": [
+            "lastNotNull"
+          ],
           "fields": "",
           "values": false
         },
@@ -166,7 +216,10 @@
       "description": "Unique N2K source addresses seen in the last 30 seconds",
       "targets": [
         {
-          "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB}" },
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${DS_INFLUXDB}"
+          },
           "query": "from(bucket: \"signalk\")\n  |> range(start: -30s)\n  |> filter(fn: (r) => exists r.source)\n  |> keep(columns: [\"source\"])\n  |> distinct(column: \"source\")\n  |> count()\n  |> map(fn: (r) => ({_value: float(v: r._value), _time: now()}))",
           "refId": "A"
         }
@@ -174,17 +227,31 @@
       "type": "stat"
     },
     {
-      "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB}" },
+      "datasource": {
+        "type": "influxdb",
+        "uid": "${DS_INFLUXDB}"
+      },
       "fieldConfig": {
         "defaults": {
-          "color": { "mode": "thresholds" },
+          "color": {
+            "mode": "thresholds"
+          },
           "mappings": [],
           "thresholds": {
             "mode": "absolute",
             "steps": [
-              { "color": "red", "value": null },
-              { "color": "yellow", "value": 10 },
-              { "color": "green", "value": 50 }
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 10
+              },
+              {
+                "color": "green",
+                "value": 50
+              }
             ]
           },
           "unit": "reqps",
@@ -192,7 +259,12 @@
         },
         "overrides": []
       },
-      "gridPos": { "h": 5, "w": 6, "x": 12, "y": 1 },
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 12,
+        "y": 1
+      },
       "id": 4,
       "options": {
         "colorMode": "background",
@@ -200,7 +272,9 @@
         "justifyMode": "center",
         "orientation": "auto",
         "reduceOptions": {
-          "calcs": ["lastNotNull"],
+          "calcs": [
+            "lastNotNull"
+          ],
           "fields": "",
           "values": false
         },
@@ -210,7 +284,10 @@
       "description": "Total N2K messages per second across all sources (last 10 seconds)",
       "targets": [
         {
-          "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB}" },
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${DS_INFLUXDB}"
+          },
           "query": "from(bucket: \"signalk\")\n  |> range(start: -10s)\n  |> group()\n  |> count()\n  |> map(fn: (r) => ({_value: float(v: r._value) / 10.0, _time: now()}))",
           "refId": "A"
         }
@@ -218,24 +295,43 @@
       "type": "stat"
     },
     {
-      "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB}" },
+      "datasource": {
+        "type": "influxdb",
+        "uid": "${DS_INFLUXDB}"
+      },
       "fieldConfig": {
         "defaults": {
-          "color": { "mode": "thresholds" },
+          "color": {
+            "mode": "thresholds"
+          },
           "mappings": [],
           "thresholds": {
             "mode": "absolute",
             "steps": [
-              { "color": "green", "value": null },
-              { "color": "yellow", "value": 1 },
-              { "color": "red", "value": 6 }
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 1
+              },
+              {
+                "color": "red",
+                "value": 6
+              }
             ]
           },
           "unit": "short"
         },
         "overrides": []
       },
-      "gridPos": { "h": 5, "w": 6, "x": 18, "y": 1 },
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 18,
+        "y": 1
+      },
       "id": 5,
       "options": {
         "colorMode": "background",
@@ -243,7 +339,9 @@
         "justifyMode": "center",
         "orientation": "auto",
         "reduceOptions": {
-          "calcs": ["lastNotNull"],
+          "calcs": [
+            "lastNotNull"
+          ],
           "fields": "",
           "values": false
         },
@@ -253,7 +351,10 @@
       "description": "N2K parse errors in the last 60 seconds",
       "targets": [
         {
-          "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB}" },
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${DS_INFLUXDB}"
+          },
           "query": "from(bucket: \"signalk\")\n  |> range(start: -60s)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"signalk.errors\" or r[\"_field\"] == \"parseError\" or r[\"_measurement\"] =~ /error/)\n  |> group()\n  |> count()\n  |> map(fn: (r) => ({_value: float(v: r._value), _time: now()}))",
           "refId": "A"
         }
@@ -262,74 +363,151 @@
     },
     {
       "collapsed": false,
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 6 },
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 6
+      },
       "id": 10,
       "title": "Live PGN Table",
       "type": "row"
     },
     {
-      "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB}" },
+      "datasource": {
+        "type": "influxdb",
+        "uid": "${DS_INFLUXDB}"
+      },
       "fieldConfig": {
         "defaults": {
           "custom": {
             "align": "auto",
-            "cellOptions": { "type": "auto" },
+            "cellOptions": {
+              "type": "auto"
+            },
             "filterable": true,
             "inspect": false
           },
           "mappings": [],
           "thresholds": {
             "mode": "absolute",
-            "steps": [{ "color": "green", "value": null }]
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
           }
         },
         "overrides": [
           {
-            "matcher": { "id": "byName", "options": "pgn" },
+            "matcher": {
+              "id": "byName",
+              "options": "pgn"
+            },
             "properties": [
-              { "id": "displayName", "value": "PGN" },
-              { "id": "custom.width", "value": 100 }
+              {
+                "id": "displayName",
+                "value": "PGN"
+              },
+              {
+                "id": "custom.width",
+                "value": 100
+              }
             ]
           },
           {
-            "matcher": { "id": "byName", "options": "pgnName" },
+            "matcher": {
+              "id": "byName",
+              "options": "pgnName"
+            },
             "properties": [
-              { "id": "displayName", "value": "Name" },
-              { "id": "custom.width", "value": 240 }
+              {
+                "id": "displayName",
+                "value": "Name"
+              },
+              {
+                "id": "custom.width",
+                "value": 240
+              }
             ]
           },
           {
-            "matcher": { "id": "byName", "options": "source" },
+            "matcher": {
+              "id": "byName",
+              "options": "source"
+            },
             "properties": [
-              { "id": "displayName", "value": "Source Address" },
-              { "id": "custom.width", "value": 120 }
+              {
+                "id": "displayName",
+                "value": "Source Address"
+              },
+              {
+                "id": "custom.width",
+                "value": 120
+              }
             ]
           },
           {
-            "matcher": { "id": "byName", "options": "deviceName" },
+            "matcher": {
+              "id": "byName",
+              "options": "deviceName"
+            },
             "properties": [
-              { "id": "displayName", "value": "Device Name" },
-              { "id": "custom.width", "value": 200 }
+              {
+                "id": "displayName",
+                "value": "Device Name"
+              },
+              {
+                "id": "custom.width",
+                "value": 200
+              }
             ]
           },
           {
-            "matcher": { "id": "byName", "options": "rate" },
+            "matcher": {
+              "id": "byName",
+              "options": "rate"
+            },
             "properties": [
-              { "id": "displayName", "value": "Rate (Hz)" },
-              { "id": "unit", "value": "hertz" },
-              { "id": "decimals", "value": 2 },
-              { "id": "custom.width", "value": 90 }
+              {
+                "id": "displayName",
+                "value": "Rate (Hz)"
+              },
+              {
+                "id": "unit",
+                "value": "hertz"
+              },
+              {
+                "id": "decimals",
+                "value": 2
+              },
+              {
+                "id": "custom.width",
+                "value": 90
+              }
             ]
           },
           {
-            "matcher": { "id": "byName", "options": "_value" },
+            "matcher": {
+              "id": "byName",
+              "options": "_value"
+            },
             "properties": [
-              { "id": "displayName", "value": "Last Value" }
+              {
+                "id": "displayName",
+                "value": "Last Value"
+              }
             ]
           }
         ]
       },
-      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 7 },
+      "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 7
+      },
       "id": 11,
       "options": {
         "cellHeight": "sm",
@@ -337,24 +515,52 @@
           "countRows": false,
           "enablePagination": true,
           "fields": "",
-          "reducer": ["sum"],
+          "reducer": [
+            "sum"
+          ],
           "show": false
         },
         "showHeader": true,
-        "sortBy": [{ "desc": false, "displayName": "PGN" }]
+        "sortBy": [
+          {
+            "desc": false,
+            "displayName": "PGN"
+          }
+        ]
       },
-      "title": "Live PGN Table — All Active PGNs",
-      "description": "Every PGN currently active on the N2K bus. Auto-discovered — no predetermined list. Use the column filter to search by PGN or name.",
+      "title": "Live PGN Table \u2014 All Active PGNs",
+      "description": "Every PGN currently active on the N2K bus. Auto-discovered \u2014 no predetermined list. Use the column filter to search by PGN or name.",
       "transformations": [
         {
           "id": "groupBy",
           "options": {
             "fields": {
-              "pgn":        { "aggregations": [], "operation": "groupby" },
-              "source":     { "aggregations": [], "operation": "groupby" },
-              "_value":     { "aggregations": ["last"], "operation": "aggregate" },
-              "_time":      { "aggregations": ["last"], "operation": "aggregate" },
-              "msgCount":   { "aggregations": ["sum"], "operation": "aggregate" }
+              "pgn": {
+                "aggregations": [],
+                "operation": "groupby"
+              },
+              "source": {
+                "aggregations": [],
+                "operation": "groupby"
+              },
+              "_value": {
+                "aggregations": [
+                  "last"
+                ],
+                "operation": "aggregate"
+              },
+              "_time": {
+                "aggregations": [
+                  "last"
+                ],
+                "operation": "aggregate"
+              },
+              "msgCount": {
+                "aggregations": [
+                  "sum"
+                ],
+                "operation": "aggregate"
+              }
             }
           }
         },
@@ -373,7 +579,9 @@
         {
           "id": "organize",
           "options": {
-            "excludeByName": { "msgCount (sum)": true },
+            "excludeByName": {
+              "msgCount (sum)": true
+            },
             "renameByName": {
               "_value (last)": "Last Value",
               "_time (last)": "Last Seen"
@@ -383,7 +591,10 @@
       ],
       "targets": [
         {
-          "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB}" },
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${DS_INFLUXDB}"
+          },
           "query": "from(bucket: \"signalk\")\n  |> range(start: -60s)\n  |> filter(fn: (r) => exists r.pgn)\n  |> group(columns: [\"pgn\", \"source\"])\n  |> map(fn: (r) => ({r with msgCount: 1}))\n  |> reduce(\n      fn: (r, accumulator) => ({msgCount: accumulator.msgCount + 1, _value: r._value, _time: r._time}),\n      identity: {msgCount: 0, _value: 0.0, _time: 1970-01-01T00:00:00Z}\n    )\n  |> map(fn: (r) => ({r with rate: float(v: r.msgCount) / 60.0}))",
           "refId": "A"
         }
@@ -392,7 +603,12 @@
     },
     {
       "collapsed": false,
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 17 },
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 17
+      },
       "id": 20,
       "repeat": "source",
       "repeatDirection": "v",
@@ -400,28 +616,77 @@
       "type": "row"
     },
     {
-      "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB}" },
+      "datasource": {
+        "type": "influxdb",
+        "uid": "${DS_INFLUXDB}"
+      },
       "fieldConfig": {
         "defaults": {
-          "color": { "mode": "thresholds" },
+          "color": {
+            "mode": "thresholds"
+          },
           "mappings": [
-            { "options": { "from": 0, "result": { "color": "green", "text": "Online" }, "to": 5 }, "type": "range" },
-            { "options": { "from": 5, "result": { "color": "yellow", "text": "Stale (5-30s)" }, "to": 30 }, "type": "range" },
-            { "options": { "from": 30, "result": { "color": "red", "text": "Offline (>30s)" }, "to": 9999 }, "type": "range" }
+            {
+              "options": {
+                "from": 0,
+                "result": {
+                  "color": "green",
+                  "text": "Online"
+                },
+                "to": 5
+              },
+              "type": "range"
+            },
+            {
+              "options": {
+                "from": 5,
+                "result": {
+                  "color": "yellow",
+                  "text": "Stale (5-30s)"
+                },
+                "to": 30
+              },
+              "type": "range"
+            },
+            {
+              "options": {
+                "from": 30,
+                "result": {
+                  "color": "red",
+                  "text": "Offline (>30s)"
+                },
+                "to": 9999
+              },
+              "type": "range"
+            }
           ],
           "thresholds": {
             "mode": "absolute",
             "steps": [
-              { "color": "green", "value": null },
-              { "color": "yellow", "value": 5 },
-              { "color": "red", "value": 30 }
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 5
+              },
+              {
+                "color": "red",
+                "value": 30
+              }
             ]
           },
           "unit": "s"
         },
         "overrides": []
       },
-      "gridPos": { "h": 3, "w": 6, "x": 0, "y": 18 },
+      "gridPos": {
+        "h": 3,
+        "w": 6,
+        "x": 0,
+        "y": 18
+      },
       "id": 21,
       "options": {
         "colorMode": "background",
@@ -429,7 +694,9 @@
         "justifyMode": "center",
         "orientation": "auto",
         "reduceOptions": {
-          "calcs": ["lastNotNull"],
+          "calcs": [
+            "lastNotNull"
+          ],
           "fields": "",
           "values": false
         },
@@ -437,11 +704,14 @@
       },
       "repeat": "source",
       "repeatDirection": "h",
-      "title": "Status — Source $source",
+      "title": "Status \u2014 Source $source",
       "description": "Seconds since last message from this source. Green <5s, Yellow 5-30s, Red >30s",
       "targets": [
         {
-          "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB}" },
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${DS_INFLUXDB}"
+          },
           "query": "import \"date\"\n\nfrom(bucket: \"signalk\")\n  |> range(start: -5m)\n  |> filter(fn: (r) => r.source == \"${source}\")\n  |> last()\n  |> map(fn: (r) => ({_value: float(v: uint(v: date.sub(from: r._time, d: duration(v: uint(v: now()) - uint(v: r._time)))) / 1000000000), _time: now()}))",
           "refId": "A"
         }
@@ -449,55 +719,133 @@
       "type": "stat"
     },
     {
-      "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB}" },
+      "datasource": {
+        "type": "influxdb",
+        "uid": "${DS_INFLUXDB}"
+      },
       "fieldConfig": {
         "defaults": {
           "custom": {
             "align": "auto",
-            "cellOptions": { "type": "auto" },
+            "cellOptions": {
+              "type": "auto"
+            },
             "filterable": true,
             "inspect": false
           },
           "mappings": [],
           "thresholds": {
             "mode": "absolute",
-            "steps": [{ "color": "green", "value": null }]
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
           }
         },
         "overrides": [
           {
-            "matcher": { "id": "byName", "options": "pgn" },
-            "properties": [{ "id": "displayName", "value": "PGN" }, { "id": "custom.width", "value": 100 }]
+            "matcher": {
+              "id": "byName",
+              "options": "pgn"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "PGN"
+              },
+              {
+                "id": "custom.width",
+                "value": 100
+              }
+            ]
           },
           {
-            "matcher": { "id": "byName", "options": "rate" },
-            "properties": [{ "id": "displayName", "value": "Rate (Hz)" }, { "id": "unit", "value": "hertz" }, { "id": "decimals", "value": 2 }]
+            "matcher": {
+              "id": "byName",
+              "options": "rate"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Rate (Hz)"
+              },
+              {
+                "id": "unit",
+                "value": "hertz"
+              },
+              {
+                "id": "decimals",
+                "value": 2
+              }
+            ]
           },
           {
-            "matcher": { "id": "byName", "options": "_value" },
-            "properties": [{ "id": "displayName", "value": "Last Value" }]
+            "matcher": {
+              "id": "byName",
+              "options": "_value"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Last Value"
+              }
+            ]
           },
           {
-            "matcher": { "id": "byName", "options": "_time" },
-            "properties": [{ "id": "displayName", "value": "Last Seen" }, { "id": "unit", "value": "dateTimeAsIso" }]
+            "matcher": {
+              "id": "byName",
+              "options": "_time"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Last Seen"
+              },
+              {
+                "id": "unit",
+                "value": "dateTimeAsIso"
+              }
+            ]
           }
         ]
       },
-      "gridPos": { "h": 8, "w": 18, "x": 6, "y": 18 },
+      "gridPos": {
+        "h": 8,
+        "w": 18,
+        "x": 6,
+        "y": 18
+      },
       "id": 22,
       "options": {
         "cellHeight": "sm",
-        "footer": { "countRows": true, "enablePagination": false, "show": true, "reducer": ["count"] },
+        "footer": {
+          "countRows": true,
+          "enablePagination": false,
+          "show": true,
+          "reducer": [
+            "count"
+          ]
+        },
         "showHeader": true,
-        "sortBy": [{ "desc": false, "displayName": "PGN" }]
+        "sortBy": [
+          {
+            "desc": false,
+            "displayName": "PGN"
+          }
+        ]
       },
       "repeat": "source",
       "repeatDirection": "h",
-      "title": "PGNs — Source $source",
+      "title": "PGNs \u2014 Source $source",
       "description": "All PGNs transmitted by this N2K source address in the last 60 seconds",
       "targets": [
         {
-          "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB}" },
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${DS_INFLUXDB}"
+          },
           "query": "from(bucket: \"signalk\")\n  |> range(start: -60s)\n  |> filter(fn: (r) => r.source == \"${source}\" and exists r.pgn)\n  |> group(columns: [\"pgn\"])\n  |> reduce(\n      fn: (r, accumulator) => ({msgCount: accumulator.msgCount + 1, _value: r._value, _time: r._time}),\n      identity: {msgCount: 0, _value: 0.0, _time: 1970-01-01T00:00:00Z}\n    )\n  |> map(fn: (r) => ({r with rate: float(v: r.msgCount) / 60.0}))",
           "refId": "A"
         }
@@ -506,29 +854,50 @@
     },
     {
       "collapsed": false,
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 27 },
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 27
+      },
       "id": 30,
       "title": "AIS Traffic",
       "type": "row"
     },
     {
-      "datasource": { "type": "marcusolsson-json-datasource", "uid": "${DS_SIGNALK}" },
+      "datasource": {
+        "type": "marcusolsson-json-datasource",
+        "uid": "${DS_SIGNALK}"
+      },
       "fieldConfig": {
         "defaults": {
-          "color": { "mode": "thresholds" },
+          "color": {
+            "mode": "thresholds"
+          },
           "mappings": [],
           "thresholds": {
             "mode": "absolute",
             "steps": [
-              { "color": "gray", "value": null },
-              { "color": "green", "value": 1 }
+              {
+                "color": "gray",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 1
+              }
             ]
           },
           "unit": "short"
         },
         "overrides": []
       },
-      "gridPos": { "h": 5, "w": 6, "x": 0, "y": 28 },
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 0,
+        "y": 28
+      },
       "id": 31,
       "options": {
         "colorMode": "background",
@@ -536,7 +905,9 @@
         "justifyMode": "center",
         "orientation": "auto",
         "reduceOptions": {
-          "calcs": ["lastNotNull"],
+          "calcs": [
+            "lastNotNull"
+          ],
           "fields": "",
           "values": false
         },
@@ -546,8 +917,17 @@
       "description": "Count of unique MMSIs with a position update in the last 5 minutes",
       "targets": [
         {
-          "datasource": { "type": "marcusolsson-json-datasource", "uid": "${DS_SIGNALK}" },
-          "fields": [{ "jsonPath": "$", "name": "count", "type": "number" }],
+          "datasource": {
+            "type": "marcusolsson-json-datasource",
+            "uid": "${DS_SIGNALK}"
+          },
+          "fields": [
+            {
+              "jsonPath": "$",
+              "name": "count",
+              "type": "number"
+            }
+          ],
           "method": "GET",
           "queryParams": "",
           "refId": "A",
@@ -559,32 +939,53 @@
         {
           "id": "organize",
           "options": {
-            "renameByName": { "count": "AIS Targets" }
+            "renameByName": {
+              "count": "AIS Targets"
+            }
           }
         }
       ],
       "type": "stat"
     },
     {
-      "datasource": { "type": "marcusolsson-json-datasource", "uid": "${DS_SIGNALK}" },
+      "datasource": {
+        "type": "marcusolsson-json-datasource",
+        "uid": "${DS_SIGNALK}"
+      },
       "fieldConfig": {
         "defaults": {
-          "color": { "mode": "thresholds" },
+          "color": {
+            "mode": "thresholds"
+          },
           "mappings": [],
           "thresholds": {
             "mode": "absolute",
             "steps": [
-              { "color": "red", "value": null },
-              { "color": "yellow", "value": 0.25 },
-              { "color": "green", "value": 0.5 }
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 0.25
+              },
+              {
+                "color": "green",
+                "value": 0.5
+              }
             ]
           },
-          "unit": "lengthmi",
+          "unit": "lengthnm",
           "decimals": 2
         },
         "overrides": []
       },
-      "gridPos": { "h": 5, "w": 6, "x": 6, "y": 28 },
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 6,
+        "y": 28
+      },
       "id": 32,
       "options": {
         "colorMode": "background",
@@ -592,7 +993,9 @@
         "justifyMode": "center",
         "orientation": "auto",
         "reduceOptions": {
-          "calcs": ["min"],
+          "calcs": [
+            "min"
+          ],
           "fields": "",
           "values": false
         },
@@ -602,8 +1005,16 @@
       "description": "Range in nautical miles to nearest AIS target. Requires own GPS position on bus.",
       "targets": [
         {
-          "datasource": { "type": "marcusolsson-json-datasource", "uid": "${DS_SIGNALK}" },
-          "fields": [{ "jsonPath": "$[*].navigation.position.value", "name": "position" }],
+          "datasource": {
+            "type": "marcusolsson-json-datasource",
+            "uid": "${DS_SIGNALK}"
+          },
+          "fields": [
+            {
+              "jsonPath": "$[*].navigation.position.value",
+              "name": "position"
+            }
+          ],
           "method": "GET",
           "queryParams": "",
           "refId": "A",
@@ -613,21 +1024,37 @@
       "type": "stat"
     },
     {
-      "datasource": { "type": "marcusolsson-json-datasource", "uid": "${DS_SIGNALK}" },
+      "datasource": {
+        "type": "marcusolsson-json-datasource",
+        "uid": "${DS_SIGNALK}"
+      },
       "fieldConfig": {
         "defaults": {
-          "color": { "mode": "fixed", "fixedColor": "blue" },
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "blue"
+          },
           "mappings": [],
           "thresholds": {
             "mode": "absolute",
-            "steps": [{ "color": "blue", "value": null }]
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
           },
-          "unit": "lengthmi",
+          "unit": "lengthnm",
           "decimals": 2
         },
         "overrides": []
       },
-      "gridPos": { "h": 5, "w": 6, "x": 12, "y": 28 },
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 12,
+        "y": 28
+      },
       "id": 33,
       "options": {
         "colorMode": "value",
@@ -635,7 +1062,9 @@
         "justifyMode": "center",
         "orientation": "auto",
         "reduceOptions": {
-          "calcs": ["max"],
+          "calcs": [
+            "max"
+          ],
           "fields": "",
           "values": false
         },
@@ -645,8 +1074,16 @@
       "description": "Range in nm to farthest AIS target with valid position",
       "targets": [
         {
-          "datasource": { "type": "marcusolsson-json-datasource", "uid": "${DS_SIGNALK}" },
-          "fields": [{ "jsonPath": "$[*].navigation.position.value", "name": "position" }],
+          "datasource": {
+            "type": "marcusolsson-json-datasource",
+            "uid": "${DS_SIGNALK}"
+          },
+          "fields": [
+            {
+              "jsonPath": "$[*].navigation.position.value",
+              "name": "position"
+            }
+          ],
           "method": "GET",
           "queryParams": "",
           "refId": "A",
@@ -656,21 +1093,37 @@
       "type": "stat"
     },
     {
-      "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB}" },
+      "datasource": {
+        "type": "influxdb",
+        "uid": "${DS_INFLUXDB}"
+      },
       "fieldConfig": {
         "defaults": {
-          "color": { "mode": "fixed", "fixedColor": "purple" },
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "purple"
+          },
           "mappings": [],
           "thresholds": {
             "mode": "absolute",
-            "steps": [{ "color": "green", "value": null }]
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
           },
           "unit": "reqps",
           "decimals": 2
         },
         "overrides": []
       },
-      "gridPos": { "h": 5, "w": 6, "x": 18, "y": 28 },
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 18,
+        "y": 28
+      },
       "id": 34,
       "options": {
         "colorMode": "value",
@@ -678,7 +1131,9 @@
         "justifyMode": "center",
         "orientation": "auto",
         "reduceOptions": {
-          "calcs": ["lastNotNull"],
+          "calcs": [
+            "lastNotNull"
+          ],
           "fields": "",
           "values": false
         },
@@ -688,7 +1143,10 @@
       "description": "Total AIS position messages per second (PGN 129038 + 129039)",
       "targets": [
         {
-          "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB}" },
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${DS_INFLUXDB}"
+          },
           "query": "from(bucket: \"signalk\")\n  |> range(start: -10s)\n  |> filter(fn: (r) => r.pgn == \"129038\" or r.pgn == \"129039\")\n  |> group()\n  |> count()\n  |> map(fn: (r) => ({_value: float(v: r._value) / 10.0, _time: now()}))",
           "refId": "A"
         }
@@ -696,113 +1154,307 @@
       "type": "stat"
     },
     {
-      "datasource": { "type": "marcusolsson-json-datasource", "uid": "${DS_SIGNALK}" },
+      "datasource": {
+        "type": "marcusolsson-json-datasource",
+        "uid": "${DS_SIGNALK}"
+      },
       "fieldConfig": {
         "defaults": {
           "custom": {
             "align": "auto",
-            "cellOptions": { "type": "auto" },
+            "cellOptions": {
+              "type": "auto"
+            },
             "filterable": true,
             "inspect": false
           },
           "mappings": [],
           "thresholds": {
             "mode": "absolute",
-            "steps": [{ "color": "green", "value": null }]
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
           }
         },
         "overrides": [
           {
-            "matcher": { "id": "byName", "options": "mmsi" },
-            "properties": [{ "id": "displayName", "value": "MMSI" }, { "id": "custom.width", "value": 110 }]
-          },
-          {
-            "matcher": { "id": "byName", "options": "name" },
-            "properties": [{ "id": "displayName", "value": "Name" }, { "id": "custom.width", "value": 200 }]
-          },
-          {
-            "matcher": { "id": "byName", "options": "vesselType" },
+            "matcher": {
+              "id": "byName",
+              "options": "mmsi"
+            },
             "properties": [
-              { "id": "displayName", "value": "Type" },
-              { "id": "custom.width", "value": 140 },
+              {
+                "id": "displayName",
+                "value": "MMSI"
+              },
+              {
+                "id": "custom.width",
+                "value": 110
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "name"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Name"
+              },
+              {
+                "id": "custom.width",
+                "value": 200
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "vesselType"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Type"
+              },
+              {
+                "id": "custom.width",
+                "value": 140
+              },
               {
                 "id": "mappings",
                 "value": [
-                  { "options": { "36": { "text": "Sailing vessel" } }, "type": "value" },
-                  { "options": { "37": { "text": "Pleasure craft" } }, "type": "value" },
-                  { "options": { "60": { "text": "Passenger" } }, "type": "value" },
-                  { "options": { "70": { "text": "Cargo" } }, "type": "value" },
-                  { "options": { "80": { "text": "Tanker" } }, "type": "value" }
+                  {
+                    "options": {
+                      "36": {
+                        "text": "Sailing vessel"
+                      }
+                    },
+                    "type": "value"
+                  },
+                  {
+                    "options": {
+                      "37": {
+                        "text": "Pleasure craft"
+                      }
+                    },
+                    "type": "value"
+                  },
+                  {
+                    "options": {
+                      "60": {
+                        "text": "Passenger"
+                      }
+                    },
+                    "type": "value"
+                  },
+                  {
+                    "options": {
+                      "70": {
+                        "text": "Cargo"
+                      }
+                    },
+                    "type": "value"
+                  },
+                  {
+                    "options": {
+                      "80": {
+                        "text": "Tanker"
+                      }
+                    },
+                    "type": "value"
+                  }
                 ]
               }
             ]
           },
           {
-            "matcher": { "id": "byName", "options": "range_nm" },
+            "matcher": {
+              "id": "byName",
+              "options": "range_nm"
+            },
             "properties": [
-              { "id": "displayName", "value": "Range (nm)" },
-              { "id": "unit", "value": "lengthmi" },
-              { "id": "decimals", "value": 2 },
-              { "id": "custom.width", "value": 100 }
+              {
+                "id": "displayName",
+                "value": "Range (nm)"
+              },
+              {
+                "id": "unit",
+                "value": "lengthnm"
+              },
+              {
+                "id": "decimals",
+                "value": 2
+              },
+              {
+                "id": "custom.width",
+                "value": 100
+              }
             ]
           },
           {
-            "matcher": { "id": "byName", "options": "bearing" },
+            "matcher": {
+              "id": "byName",
+              "options": "bearing"
+            },
             "properties": [
-              { "id": "displayName", "value": "Bearing (°T)" },
-              { "id": "unit", "value": "degree" },
-              { "id": "decimals", "value": 1 },
-              { "id": "custom.width", "value": 110 }
+              {
+                "id": "displayName",
+                "value": "Bearing (\u00b0T)"
+              },
+              {
+                "id": "unit",
+                "value": "degree"
+              },
+              {
+                "id": "decimals",
+                "value": 1
+              },
+              {
+                "id": "custom.width",
+                "value": 110
+              }
             ]
           },
           {
-            "matcher": { "id": "byName", "options": "sog" },
+            "matcher": {
+              "id": "byName",
+              "options": "sog_kts"
+            },
             "properties": [
-              { "id": "displayName", "value": "SOG (kts)" },
-              { "id": "unit", "value": "velocityKn" },
-              { "id": "decimals", "value": 1 },
-              { "id": "custom.width", "value": 90 }
+              {
+                "id": "displayName",
+                "value": "SOG (kts)"
+              },
+              {
+                "id": "unit",
+                "value": "velocityKn"
+              },
+              {
+                "id": "decimals",
+                "value": 1
+              },
+              {
+                "id": "custom.width",
+                "value": 90
+              }
             ]
           },
           {
-            "matcher": { "id": "byName", "options": "cog" },
+            "matcher": {
+              "id": "byName",
+              "options": "cog_deg"
+            },
             "properties": [
-              { "id": "displayName", "value": "COG (°T)" },
-              { "id": "unit", "value": "degree" },
-              { "id": "decimals", "value": 1 },
-              { "id": "custom.width", "value": 90 }
+              {
+                "id": "displayName",
+                "value": "COG (\u00b0T)"
+              },
+              {
+                "id": "unit",
+                "value": "degree"
+              },
+              {
+                "id": "decimals",
+                "value": 1
+              },
+              {
+                "id": "custom.width",
+                "value": 90
+              }
             ]
           },
           {
-            "matcher": { "id": "byName", "options": "lastUpdate" },
+            "matcher": {
+              "id": "byName",
+              "options": "lastUpdate"
+            },
             "properties": [
-              { "id": "displayName", "value": "Last Update" },
-              { "id": "unit", "value": "dateTimeAsIso" },
-              { "id": "custom.width", "value": 160 }
+              {
+                "id": "displayName",
+                "value": "Last Update"
+              },
+              {
+                "id": "unit",
+                "value": "dateTimeAsIso"
+              },
+              {
+                "id": "custom.width",
+                "value": 160
+              }
             ]
           }
         ]
       },
-      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 33 },
+      "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 33
+      },
       "id": 35,
       "options": {
         "cellHeight": "sm",
-        "footer": { "countRows": true, "enablePagination": true, "show": true, "reducer": ["count"] },
+        "footer": {
+          "countRows": true,
+          "enablePagination": true,
+          "show": true,
+          "reducer": [
+            "count"
+          ]
+        },
         "showHeader": true,
-        "sortBy": [{ "desc": false, "displayName": "Range (nm)" }]
+        "sortBy": [
+          {
+            "desc": false,
+            "displayName": "Range (nm)"
+          }
+        ]
       },
       "title": "AIS Target Table",
       "description": "All AIS targets from Signal K /signalk/v1/api/vessels. Sorted by range. Range/bearing requires own GPS position on bus.",
       "targets": [
         {
-          "datasource": { "type": "marcusolsson-json-datasource", "uid": "${DS_SIGNALK}" },
+          "datasource": {
+            "type": "marcusolsson-json-datasource",
+            "uid": "${DS_SIGNALK}"
+          },
           "fields": [
-            { "jsonPath": "$[*]~", "name": "mmsi", "type": "string" },
-            { "jsonPath": "$[*].name.value", "name": "name", "type": "string" },
-            { "jsonPath": "$[*].registrations.imo.value", "name": "vesselType", "type": "string" },
-            { "jsonPath": "$[*].navigation.speedOverGround.value", "name": "sog", "type": "number" },
-            { "jsonPath": "$[*].navigation.courseOverGroundTrue.value", "name": "cog", "type": "number" },
-            { "jsonPath": "$[*].navigation.position.timestamp", "name": "lastUpdate", "type": "string" }
+            {
+              "jsonPath": "$[*]~",
+              "name": "mmsi",
+              "type": "string"
+            },
+            {
+              "jsonPath": "$[*].name.value",
+              "name": "name",
+              "type": "string"
+            },
+            {
+              "jsonPath": "$[*].registrations.imo.value",
+              "name": "vesselType",
+              "type": "string"
+            },
+            {
+              "jsonPath": "$[*].navigation.speedOverGround.value",
+              "name": "sog",
+              "type": "number"
+            },
+            {
+              "jsonPath": "$[*].navigation.courseOverGroundTrue.value",
+              "name": "cog",
+              "type": "number"
+            },
+            {
+              "jsonPath": "$[*].navigation.position.timestamp",
+              "name": "lastUpdate",
+              "type": "string"
+            }
           ],
           "method": "GET",
           "queryParams": "",
@@ -815,7 +1467,13 @@
           "id": "filterByValue",
           "options": {
             "filters": [
-              { "config": { "id": "isNotNull", "options": {} }, "fieldName": "mmsi" }
+              {
+                "config": {
+                  "id": "isNotNull",
+                  "options": {}
+                },
+                "fieldName": "mmsi"
+              }
             ],
             "match": "all",
             "type": "include"
@@ -825,9 +1483,18 @@
           "id": "convertFieldType",
           "options": {
             "conversions": [
-              { "destinationType": "number", "fieldName": "sog" },
-              { "destinationType": "number", "fieldName": "cog" },
-              { "destinationType": "time", "fieldName": "lastUpdate" }
+              {
+                "destinationType": "number",
+                "fieldName": "sog"
+              },
+              {
+                "destinationType": "number",
+                "fieldName": "cog"
+              },
+              {
+                "destinationType": "time",
+                "fieldName": "lastUpdate"
+              }
             ]
           }
         },
@@ -835,18 +1502,43 @@
           "id": "calculateField",
           "options": {
             "alias": "sog_kts",
-            "binary": { "left": "sog", "operator": "*", "right": "1.94384" },
+            "binary": {
+              "left": "sog",
+              "operator": "*",
+              "right": "1.94384"
+            },
             "mode": "binaryOperation",
-            "reduce": { "reducer": "sum" }
+            "reduce": {
+              "reducer": "sum"
+            }
           }
         },
         {
           "id": "calculateField",
           "options": {
             "alias": "cog_deg",
-            "binary": { "left": "cog", "operator": "*", "right": "57.2958" },
+            "binary": {
+              "left": "cog",
+              "operator": "*",
+              "right": "57.2958"
+            },
             "mode": "binaryOperation",
-            "reduce": { "reducer": "sum" }
+            "reduce": {
+              "reducer": "sum"
+            }
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "sog": true,
+              "cog": true
+            },
+            "renameByName": {
+              "sog_kts": "SOG (kts)",
+              "cog_deg": "COG (\u00b0T)"
+            }
           }
         }
       ],
@@ -854,16 +1546,26 @@
     },
     {
       "collapsed": false,
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 43 },
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 43
+      },
       "id": 40,
       "title": "Message Rate Timeline",
       "type": "row"
     },
     {
-      "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB}" },
+      "datasource": {
+        "type": "influxdb",
+        "uid": "${DS_INFLUXDB}"
+      },
       "fieldConfig": {
         "defaults": {
-          "color": { "mode": "palette-classic" },
+          "color": {
+            "mode": "palette-classic"
+          },
           "custom": {
             "axisBorderShow": false,
             "axisCenteredZero": false,
@@ -874,43 +1576,73 @@
             "drawStyle": "line",
             "fillOpacity": 40,
             "gradientMode": "none",
-            "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
             "insertNulls": false,
             "lineInterpolation": "linear",
             "lineWidth": 1,
             "pointSize": 5,
-            "scaleDistribution": { "type": "linear" },
+            "scaleDistribution": {
+              "type": "linear"
+            },
             "showPoints": "never",
             "spanNulls": false,
-            "stacking": { "group": "A", "mode": "normal" },
-            "thresholdsStyle": { "mode": "off" }
+            "stacking": {
+              "group": "A",
+              "mode": "normal"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
           },
           "mappings": [],
           "thresholds": {
             "mode": "absolute",
-            "steps": [{ "color": "green", "value": null }]
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
           },
           "unit": "reqps",
           "decimals": 2
         },
         "overrides": []
       },
-      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 44 },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 44
+      },
       "id": 41,
       "options": {
         "legend": {
-          "calcs": ["mean", "max"],
+          "calcs": [
+            "mean",
+            "max"
+          ],
           "displayMode": "table",
           "placement": "right",
           "showLegend": true
         },
-        "tooltip": { "mode": "multi", "sort": "desc" }
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
       },
-      "title": "Message Rate per Source — Last 15 min",
+      "title": "Message Rate per Source \u2014 Last 15 min",
       "description": "Stacked area chart of N2K messages/sec per source address, 5-second aggregation windows. Drops indicate device offline; spikes indicate address claim storms.",
       "targets": [
         {
-          "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB}" },
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${DS_INFLUXDB}"
+          },
           "query": "from(bucket: \"signalk\")\n  |> range(start: -15m)\n  |> filter(fn: (r) => exists r.source)\n  |> group(columns: [\"source\"])\n  |> aggregateWindow(every: 5s, fn: count, createEmpty: true)\n  |> map(fn: (r) => ({r with _value: float(v: r._value) / 5.0}))",
           "refId": "A"
         }
@@ -919,25 +1651,44 @@
     },
     {
       "collapsed": false,
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 52 },
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 52
+      },
       "id": 50,
       "title": "Bus Load Indicator",
       "type": "row"
     },
     {
-      "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB}" },
+      "datasource": {
+        "type": "influxdb",
+        "uid": "${DS_INFLUXDB}"
+      },
       "fieldConfig": {
         "defaults": {
-          "color": { "mode": "thresholds" },
+          "color": {
+            "mode": "thresholds"
+          },
           "mappings": [],
           "max": 100,
           "min": 0,
           "thresholds": {
             "mode": "absolute",
             "steps": [
-              { "color": "green", "value": null },
-              { "color": "yellow", "value": 50 },
-              { "color": "red", "value": 70 }
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 50
+              },
+              {
+                "color": "red",
+                "value": 70
+              }
             ]
           },
           "unit": "percent",
@@ -945,7 +1696,12 @@
         },
         "overrides": []
       },
-      "gridPos": { "h": 6, "w": 24, "x": 0, "y": 53 },
+      "gridPos": {
+        "h": 6,
+        "w": 24,
+        "x": 0,
+        "y": 53
+      },
       "id": 51,
       "options": {
         "displayMode": "lcd",
@@ -956,7 +1712,9 @@
         "namePlacement": "auto",
         "orientation": "horizontal",
         "reduceOptions": {
-          "calcs": ["lastNotNull"],
+          "calcs": [
+            "lastNotNull"
+          ],
           "fields": "",
           "values": false
         },
@@ -965,10 +1723,13 @@
         "text": {}
       },
       "title": "N2K Bus Load",
-      "description": "Estimated CAN bus utilization: (msg/s over last 10s) / 1600 × 100%. NMEA 2000 max is ~1600 frames/sec at 250 kbps. Green <50%, Yellow 50-70%, Red >70%.",
+      "description": "Estimated CAN bus utilization: (msg/s over last 10s) / 1600 \u00d7 100%. NMEA 2000 max is ~1600 frames/sec at 250 kbps. Green <50%, Yellow 50-70%, Red >70%.",
       "targets": [
         {
-          "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB}" },
+          "datasource": {
+            "type": "influxdb",
+            "uid": "${DS_INFLUXDB}"
+          },
           "query": "from(bucket: \"signalk\")\n  |> range(start: -10s)\n  |> group()\n  |> count()\n  |> map(fn: (r) => ({_value: (float(v: r._value) / 10.0) / 1600.0 * 100.0, _time: now(), _field: \"bus_load_pct\"}))",
           "refId": "A"
         }
@@ -978,14 +1739,23 @@
   ],
   "refresh": "5s",
   "schemaVersion": 39,
-  "tags": ["nmea2000", "n2k", "bg", "diagnostics", "marine"],
+  "tags": [
+    "nmea2000",
+    "n2k",
+    "bg",
+    "diagnostics",
+    "marine"
+  ],
   "templating": {
     "list": [
       {
         "current": {},
-        "datasource": { "type": "influxdb", "uid": "${DS_INFLUXDB}" },
+        "datasource": {
+          "type": "influxdb",
+          "uid": "${DS_INFLUXDB}"
+        },
         "definition": "import \"influxdata/influxdb/schema\"\nschema.tagValues(bucket: \"signalk\", tag: \"source\")",
-        "description": "N2K source address — used to repeat per-device row",
+        "description": "N2K source address \u2014 used to repeat per-device row",
         "hide": 0,
         "includeAll": true,
         "label": "Source",
@@ -1000,10 +1770,25 @@
       }
     ]
   },
-  "time": { "from": "now-15m", "to": "now" },
+  "time": {
+    "from": "now-15m",
+    "to": "now"
+  },
   "timepicker": {
-    "refresh_intervals": ["5s", "10s", "30s", "1m"],
-    "time_options": ["5m", "15m", "1h", "6h", "12h", "24h"]
+    "refresh_intervals": [
+      "5s",
+      "10s",
+      "30s",
+      "1m"
+    ],
+    "time_options": [
+      "5m",
+      "15m",
+      "1h",
+      "6h",
+      "12h",
+      "24h"
+    ]
   },
   "timezone": "browser",
   "title": "N2K Network Monitor",
