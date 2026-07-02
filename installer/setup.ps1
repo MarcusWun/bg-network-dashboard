@@ -1,4 +1,3 @@
-#Requires -RunAsAdministrator
 <#
 .SYNOPSIS
     B&G Network Dashboard post-install setup script.
@@ -14,12 +13,20 @@ param(
     [switch]$InstallWireshark
 )
 
+# Write a marker immediately via raw I/O — this works even before Start-Transcript
+$logFile = "C:\bg-dashboard-install.log"
+[System.IO.File]::AppendAllText($logFile, "=== setup.ps1 started $(Get-Date) ===`r`n")
+
 $ErrorActionPreference = "Stop"
 
-$logFile = "C:\bg-dashboard-install.log"
+# Force TLS 1.2 — required for downloads on some Windows builds
+[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+
 Start-Transcript -Path $logFile -Append -Force
 Write-Host "=== B&G Dashboard Setup Log: $(Get-Date) ===" -ForegroundColor Yellow
 Write-Host "AppDir: $AppDir"
+Write-Host "PowerShell version: $($PSVersionTable.PSVersion)"
+Write-Host "Is Admin: $([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)"
 
 function Write-Step {
     param([string]$Message)
@@ -133,6 +140,8 @@ function Install-Msi {
 }
 
 $TmpDir = $env:TEMP
+
+try {
 
 # ============================================================
 # Phase 0: Download and install dependencies
@@ -796,5 +805,14 @@ Write-Host "Login: marcuswunderlich / sunfast3300" -ForegroundColor Green
 Write-Host ""
 Write-Host "Next step: Power up the boat, then use VALUE-MAPPINGS.md to configure" -ForegroundColor Yellow
 Write-Host "           Grafana value mappings for NMEA 2000 device source addresses." -ForegroundColor Yellow
+
+} catch {
+    Write-Host ""
+    Write-Host "FATAL ERROR: $_" -ForegroundColor Red
+    Write-Host $_.ScriptStackTrace -ForegroundColor Red
+    [System.IO.File]::AppendAllText($logFile, "FATAL: $($_.ToString())`r`n$($_.ScriptStackTrace)`r`n")
+    Stop-Transcript
+    exit 1
+}
 
 Stop-Transcript
