@@ -16,6 +16,11 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+$logFile = "C:\bg-dashboard-install.log"
+Start-Transcript -Path $logFile -Append -Force
+Write-Host "=== B&G Dashboard Setup Log: $(Get-Date) ===" -ForegroundColor Yellow
+Write-Host "AppDir: $AppDir"
+
 function Write-Step {
     param([string]$Message)
     Write-Host ""
@@ -791,3 +796,5 @@ Write-Host "Login: marcuswunderlich / sunfast3300" -ForegroundColor Green
 Write-Host ""
 Write-Host "Next step: Power up the boat, then use VALUE-MAPPINGS.md to configure" -ForegroundColor Yellow
 Write-Host "           Grafana value mappings for NMEA 2000 device source addresses." -ForegroundColor Yellow
+
+Stop-Transcript
