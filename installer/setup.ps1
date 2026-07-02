@@ -442,58 +442,45 @@ if (Test-Path $skSettingsPath) {
     $skContent = $skContent -replace "INFLUXDB_TOKEN_PLACEHOLDER", $token
     Set-Content -Path $skSettingsPath -Value $skContent -NoNewline
 } else {
-    $settingsJson = @"
-{
-  "interfaces": {},
-  "vessels": {
-    "self": {
-      "uuid": "urn:mrn:imo:mmsi:0"
-    }
-  },
-  "ssl": false,
-  "pipedProviders": [
-    {
-      "id": "NGT-1",
-      "pipeElements": [
-        {
-          "type": "providers/actisense-serial",
-          "options": {
-            "device": "COM3",
-            "baudrate": 115200
-          }
+    $settingsObj = [ordered]@{
+        interfaces = [ordered]@{}
+        vessels = [ordered]@{ self = [ordered]@{ uuid = "urn:mrn:imo:mmsi:0" } }
+        ssl = $false
+        pipedProviders = @(
+            [ordered]@{
+                id = "NGT-1"
+                pipeElements = @(
+                    [ordered]@{
+                        type = "providers/actisense-serial"
+                        options = [ordered]@{ device = "COM3"; baudrate = 115200 }
+                    }
+                )
+            },
+            [ordered]@{
+                id = "H5000-NMEA0183"
+                pipeElements = @(
+                    [ordered]@{
+                        type = "providers/tcp"
+                        options = [ordered]@{ host = "192.168.1.233"; port = 10110 }
+                    },
+                    [ordered]@{ type = "providers/nmea0183-provider" }
+                )
+            }
+        )
+        plugins = [ordered]@{
+            "signalk-to-influxdb2" = [ordered]@{
+                active = $true
+                configuration = [ordered]@{
+                    influxUrl = "http://localhost:8086"
+                    organisation = "StratosRacing"
+                    bucket = "signalk"
+                    token = $token
+                }
+            }
         }
-      ]
-    },
-    {
-      "id": "H5000-NMEA0183",
-      "pipeElements": [
-        {
-          "type": "providers/tcp",
-          "options": {
-            "host": "192.168.1.233",
-            "port": 10110
-          }
-        },
-        {
-          "type": "providers/nmea0183-provider"
-        }
-      ]
     }
-  ],
-  "plugins": {
-    "signalk-to-influxdb2": {
-      "active": true,
-      "configuration": {
-        "influxUrl": "http://localhost:8086",
-        "organisation": "StratosRacing",
-        "bucket": "signalk",
-        "token": "$token"
-      }
-    }
-  }
-}
-"@
-    Set-Content -Path $skSettingsPath -Value $settingsJson
+    $settingsJson = $settingsObj | ConvertTo-Json -Depth 10
+    Set-Content -Path $skSettingsPath -Value $settingsJson -Encoding UTF8
     Write-Host "  Signal K settings.json created with data connections and InfluxDB plugin config."
 }
 
