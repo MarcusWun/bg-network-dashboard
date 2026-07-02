@@ -807,10 +807,12 @@ Write-Host "Next step: Power up the boat, then use VALUE-MAPPINGS.md to configur
 Write-Host "           Grafana value mappings for NMEA 2000 device source addresses." -ForegroundColor Yellow
 
 } catch {
+    $errMsg = "FATAL: " + $_.ToString()
     Write-Host ""
-    Write-Host "FATAL ERROR: $_" -ForegroundColor Red
+    Write-Host $errMsg -ForegroundColor Red
     Write-Host $_.ScriptStackTrace -ForegroundColor Red
-    [System.IO.File]::AppendAllText($logFile, "FATAL: $($_.ToString())`r`n$($_.ScriptStackTrace)`r`n")
+    Add-Content -Path $logFile -Value $errMsg
+    Add-Content -Path $logFile -Value $_.ScriptStackTrace
     Stop-Transcript
     exit 1
 }
