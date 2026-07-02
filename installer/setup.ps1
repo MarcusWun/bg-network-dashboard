@@ -183,11 +183,12 @@ try {
             [System.Environment]::SetEnvironmentVariable("Path","$mp;$influxDir","Machine")
             $env:Path = "$env:Path;$influxDir"
         }
-        # Register as a Windows service (influxd service install was removed in 2.3+)
-        $influxBin = "`"$influxDir\influxd.exe`""
-        New-Service -Name "influxdb" -DisplayName "InfluxDB" -BinaryPathName $influxBin -StartupType Automatic | Out-Null
-        Start-Service influxdb -ErrorAction SilentlyContinue
-        Write-Host "  InfluxDB installed and service started."
+        # Register as a Windows service with explicit data paths so it runs correctly as SYSTEM
+        $influxDataDir = "C:\ProgramData\InfluxDB"
+        New-Item -ItemType Directory -Path $influxDataDir -Force | Out-Null
+        $influxBinPath = "`"$influxDir\influxd.exe`" --bolt-path `"$influxDataDir\influxd.bolt`" --engine-path `"$influxDataDir\engine`" --sqlite-path `"$influxDataDir\influxd.sqlite`""
+        New-Service -Name "influxdb" -DisplayName "InfluxDB" -BinaryPathName $influxBinPath -StartupType Automatic | Out-Null
+        Write-Host "  InfluxDB service registered with data dir $influxDataDir."
     }
 } catch {
     Write-Host "  ERROR installing InfluxDB: $_" -ForegroundColor Red
@@ -246,20 +247,39 @@ if ($InstallNSSM) {
             Write-Host "  NSSM already installed."
         } else {
             $nssmZip = Join-Path $TmpDir "nssm-2.24.zip"
-            Get-Download "https://nssm.cc/release/nssm-2.24.zip" $nssmZip
             $nssmDir = "C:\nssm"
-            New-Item -ItemType Directory -Path $nssmDir -Force | Out-Null
-            Expand-Archive -Path $nssmZip -DestinationPath $nssmDir -Force
-            # Move win64 binary to C:\nssm\
-            Get-ChildItem "$nssmDir\nssm-*\win64\nssm.exe" | Move-Item -Destination $nssmDir -Force
-            # Clean up subdirs
-            Get-ChildItem "$nssmDir\nssm-*" -Directory | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
+            $nssmDownloaded = $false
+            # Try nssm.cc first, fall back to Chocolatey
+            try {
+                Get-Download "https://nssm.cc/release/nssm-2.24.zip" $nssmZip
+                $nssmDownloaded = $true
+            } catch {
+                Write-Host "  nssm.cc unavailable, trying Chocolatey..."
+                try {
+                    & choco install nssm -y --no-progress 2>&1 | Out-Null
+                    $chocoNssm = "C:\ProgramData\chocolatey\bin\nssm.exe"
+                    if (Test-Path $chocoNssm) {
+                        New-Item -ItemType Directory -Path $nssmDir -Force | Out-Null
+                        Copy-Item $chocoNssm "$nssmDir\nssm.exe" -Force
+                        Write-Host "  NSSM installed via Chocolatey."
+                    }
+                } catch {
+                    Write-Host "  WARNING: Could not install NSSM via Chocolatey either: $_" -ForegroundColor Yellow
+                }
+            }
+            if ($nssmDownloaded) {
+                New-Item -ItemType Directory -Path $nssmDir -Force | Out-Null
+                Expand-Archive -Path $nssmZip -DestinationPath $nssmDir -Force
+                # Move win64 binary to C:\nssm\
+                Get-ChildItem "$nssmDir\nssm-*\win64\nssm.exe" | Move-Item -Destination $nssmDir -Force
+                Get-ChildItem "$nssmDir\nssm-*" -Directory | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
+                Write-Host "  NSSM installed to $nssmDir."
+            }
             $mp = [System.Environment]::GetEnvironmentVariable("Path","Machine")
             if ($mp -notlike "*C:\nssm*") {
                 [System.Environment]::SetEnvironmentVariable("Path","$mp;C:\nssm","Machine")
                 $env:Path = "$env:Path;C:\nssm"
             }
-            Write-Host "  NSSM installed to $nssmDir."
         }
     } catch {
         Write-Host "  WARNING: NSSM install failed: $_" -ForegroundColor Yellow
@@ -543,7 +563,25 @@ if (Test-Path $nssmPath) {
         Write-Host "  WARNING: Could not install Signal K service: $_" -ForegroundColor Yellow
     }
 } else {
-    Write-Host "  Skipping  -  NSSM not available."
+    Write-Host "  NSSM not found - installing Signal K service via sc.exe instead."
+    try {
+        $existingSvc = Get-Service -Name "signalk" -ErrorAction SilentlyContinue
+        if ($existingSvc) {
+            Write-Host "  Signal K service already exists  -  skipping."
+        } else {
+            $nodePath = (Get-Command node -ErrorAction Stop).Source
+            $signalkScript = "$env:APPDATA\npm\node_modules\signalk-server\bin\signalk-server"
+            if (Test-Path $signalkScript) {
+                $svcBin = "`"$nodePath`" `"$signalkScript`" --config `"$skConfigDir`""
+                & sc.exe create signalk binPath= $svcBin start= delayed-auto DisplayName= "Signal K Server" | Out-Null
+                Write-Host "  Signal K service registered via sc.exe."
+            } else {
+                Write-Host "  WARNING: signalk-server not found at $signalkScript" -ForegroundColor Yellow
+            }
+        }
+    } catch {
+        Write-Host "  WARNING: Could not install Signal K service: $_" -ForegroundColor Yellow
+    }
 }
 
 # ============================================================
