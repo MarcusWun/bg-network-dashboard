@@ -13,9 +13,8 @@ param(
     [switch]$InstallWireshark
 )
 
-# Write a marker immediately via raw I/O  -  this works even before Start-Transcript
+# Log file path (launch.cmd already wrote the startup marker)
 $logFile = "C:\bg-dashboard-install.log"
-[System.IO.File]::AppendAllText($logFile, "=== setup.ps1 started $(Get-Date) ===`r`n")
 
 $ErrorActionPreference = "Stop"
 
@@ -184,8 +183,9 @@ try {
             [System.Environment]::SetEnvironmentVariable("Path","$mp;$influxDir","Machine")
             $env:Path = "$env:Path;$influxDir"
         }
-        # Register as a service
-        & "$influxDir\influxd.exe" service install 2>&1 | Out-Null
+        # Register as a Windows service (influxd service install was removed in 2.3+)
+        $influxBin = "`"$influxDir\influxd.exe`""
+        New-Service -Name "influxdb" -DisplayName "InfluxDB" -BinaryPathName $influxBin -StartupType Automatic | Out-Null
         Start-Service influxdb -ErrorAction SilentlyContinue
         Write-Host "  InfluxDB installed and service started."
     }
@@ -807,12 +807,9 @@ Write-Host "Next step: Power up the boat, then use VALUE-MAPPINGS.md to configur
 Write-Host "           Grafana value mappings for NMEA 2000 device source addresses." -ForegroundColor Yellow
 
 } catch {
-    $errMsg = "FATAL: " + $_.ToString()
     Write-Host ""
-    Write-Host $errMsg -ForegroundColor Red
-    Write-Host $_.ScriptStackTrace -ForegroundColor Red
-    Add-Content -Path $logFile -Value $errMsg
-    Add-Content -Path $logFile -Value $_.ScriptStackTrace
+    Write-Host "FATAL: $($_.ToString())" -ForegroundColor Red
+    Write-Host "$($_.ScriptStackTrace)" -ForegroundColor Red
     Stop-Transcript
     exit 1
 }
