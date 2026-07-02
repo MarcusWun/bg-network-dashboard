@@ -33,7 +33,8 @@ Source: "..\VALUE-MAPPINGS.md"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\INSTALL.md"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\SERVICES.md"; DestDir: "{app}"; Flags: ignoreversion
 Source: "setup.ps1"; DestDir: "{app}\installer"; Flags: ignoreversion
+Source: "launch.cmd"; DestDir: "{app}\installer"; Flags: ignoreversion
 
 [Run]
-Filename: "powershell.exe"; Parameters: "-ExecutionPolicy Bypass -NonInteractive -File ""{app}\installer\setup.ps1"" -AppDir ""{app}"" -InstallNSSM -InstallWireshark"; StatusMsg: "Installing dependencies and configuring services (this may take 10-15 minutes)..."; Flags: runhidden waituntilterminated
+Filename: "{app}\installer\launch.cmd"; Parameters: """{app}"""; StatusMsg: "Installing dependencies and configuring services (this may take 10-15 minutes)..."; Flags: waituntilterminated
 Filename: "{sys}\cmd.exe"; Parameters: "/c start http://localhost:3001"; Description: "Open Grafana Dashboard"; Flags: postinstall nowait skipifsilent shellexec
