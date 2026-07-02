@@ -13,13 +13,13 @@ param(
     [switch]$InstallWireshark
 )
 
-# Write a marker immediately via raw I/O — this works even before Start-Transcript
+# Write a marker immediately via raw I/O  -  this works even before Start-Transcript
 $logFile = "C:\bg-dashboard-install.log"
 [System.IO.File]::AppendAllText($logFile, "=== setup.ps1 started $(Get-Date) ===`r`n")
 
 $ErrorActionPreference = "Stop"
 
-# Force TLS 1.2 — required for downloads on some Windows builds
+# Force TLS 1.2  -  required for downloads on some Windows builds
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
 Start-Transcript -Path $logFile -Append -Force
@@ -202,11 +202,11 @@ try {
         $grafanaMsi = Join-Path $TmpDir "grafana-11.6.0.msi"
         Get-Download "https://dl.grafana.com/oss/release/grafana-11.6.0.windows-amd64.msi" $grafanaMsi
         Install-Msi $grafanaMsi "Grafana"
-        # Write custom.ini to override port — always takes precedence over defaults.ini
+        # Write custom.ini to override port  -  always takes precedence over defaults.ini
         $grafanaCustomIni = "C:\Program Files\GrafanaLabs\grafana\conf\custom.ini"
         "[server]`nhttp_port = 3001`nhttp_addr = 0.0.0.0" | Set-Content $grafanaCustomIni
         Write-Host "  Grafana custom.ini written (port 3001, bind 0.0.0.0)."
-        # Detect service name — Grafana installer uses different names across versions
+        # Detect service name  -  Grafana installer uses different names across versions
         $grafanaSvcName = @("GrafanaLabs.Grafana","Grafana") | Where-Object { Get-Service $_ -ErrorAction SilentlyContinue } | Select-Object -First 1
         if ($grafanaSvcName) { Start-Service $grafanaSvcName -ErrorAction SilentlyContinue }
         Write-Host "  Grafana installed on port 3001."
@@ -336,13 +336,13 @@ try {
         --org StratosRacing `
         --description "bg-dashboard-token" 2>&1
 
-    # Parse token from tabular output — token is in the second column
+    # Parse token from tabular output  -  token is in the second column
     $tokenLine = ($tokenOutput | Select-String -Pattern "bg-dashboard-token").Line
     if (-not $tokenLine) {
         # Fallback: try to find a line that looks like a token row
         $tokenLine = $tokenOutput | Where-Object { $_ -match "bg-dashboard-token" } | Select-Object -First 1
     }
-    # Split on whitespace — fields: ID, Description, Token, User, ...
+    # Split on whitespace  -  fields: ID, Description, Token, User, ...
     $fields = ($tokenLine -split "\s{2,}").Trim()
     # Token is typically the longest field that looks like a base64/hex string
     $token = $fields | Where-Object { $_.Length -gt 40 -and $_ -notmatch "\s" } | Select-Object -First 1
@@ -450,7 +450,7 @@ if (-not (Test-Path $skConfigDir)) {
 Write-Step "Step 10: Writing Signal K settings.json"
 $skSettingsPath = Join-Path $skConfigDir "settings.json"
 if (Test-Path $skSettingsPath) {
-    Write-Host "  settings.json already exists — skipping to avoid overwriting user config."
+    Write-Host "  settings.json already exists  -  skipping to avoid overwriting user config."
     Write-Host "  Injecting token into existing settings.json..."
     $skContent = Get-Content $skSettingsPath -Raw
     $skContent = $skContent -replace "INFLUXDB_TOKEN_PLACEHOLDER", $token
@@ -513,7 +513,7 @@ if (Test-Path $nssmPath) {
         Write-Host "  Added C:\nssm to system PATH."
     }
 } else {
-    Write-Host "  NSSM not found — Signal K will not be installed as a service."
+    Write-Host "  NSSM not found  -  Signal K will not be installed as a service."
     Write-Host "  You can install NSSM later from https://nssm.cc and follow INSTALL.md step 7."
 }
 
@@ -525,7 +525,7 @@ if (Test-Path $nssmPath) {
     try {
         $existingSvc = Get-Service -Name "signalk" -ErrorAction SilentlyContinue
         if ($existingSvc) {
-            Write-Host "  Signal K service already exists — skipping."
+            Write-Host "  Signal K service already exists  -  skipping."
         } else {
             # Find node.exe path
             $nodePath = (Get-Command node -ErrorAction Stop).Source
@@ -543,7 +543,7 @@ if (Test-Path $nssmPath) {
         Write-Host "  WARNING: Could not install Signal K service: $_" -ForegroundColor Yellow
     }
 } else {
-    Write-Host "  Skipping — NSSM not available."
+    Write-Host "  Skipping  -  NSSM not available."
 }
 
 # ============================================================
@@ -609,7 +609,7 @@ try {
         Write-Host "  Grafana admin password changed."
     } catch {
         if ($_.Exception.Response.StatusCode -eq 401) {
-            Write-Host "  Password already changed (got 401 with default creds) — skipping."
+            Write-Host "  Password already changed (got 401 with default creds)  -  skipping."
         } else {
             Write-Host "  WARNING: Could not change password: $_" -ForegroundColor Yellow
         }
@@ -644,7 +644,7 @@ try {
         $influxDsUid = $influxDs.datasource.uid
         Write-Host "  InfluxDB datasource added (UID: $influxDsUid)."
     } else {
-        # Datasource may already exist — try to get its UID
+        # Datasource may already exist  -  try to get its UID
         $existing = Invoke-GrafanaApi -Method "GET" -Path "/api/datasources/name/InfluxDB"
         if ($existing) {
             $influxDsUid = $existing.uid
@@ -763,7 +763,7 @@ foreach ($svc in $services) {
     try {
         $service = Get-Service -Name $svc -ErrorAction SilentlyContinue
         if (-not $service) {
-            Write-Host "  Service '$svc' not found — skipping."
+            Write-Host "  Service '$svc' not found  -  skipping."
             continue
         }
         if ($service.Status -eq "Running") {
