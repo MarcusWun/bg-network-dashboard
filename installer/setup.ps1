@@ -164,32 +164,42 @@ try {
 
 Write-Step "Phase 0: Installing InfluxDB 2.x"
 try {
-    if (Get-Service influxdb -ErrorAction SilentlyContinue) {
-        Write-Host "  InfluxDB service already present."
-    } else {
+    $influxDir = "C:\Program Files\InfluxData\influxdb"
+    $influxDataDir = "C:\ProgramData\InfluxDB"
+
+    # Download and extract if influxd.exe is not present
+    if (-not (Test-Path "$influxDir\influxd.exe")) {
         $influxZip = Join-Path $TmpDir "influxdb2-windows.zip"
         Get-Download "https://dl.influxdata.com/influxdb/releases/influxdb2-2.7.6-windows.zip" $influxZip
-        $influxDir = "C:\Program Files\InfluxData\influxdb"
         New-Item -ItemType Directory -Path $influxDir -Force | Out-Null
         Expand-Archive -Path $influxZip -DestinationPath $influxDir -Force
-        # Move contents out of the versioned subfolder
         Get-ChildItem "$influxDir\influxdb2-*" -Directory | ForEach-Object {
             Get-ChildItem $_.FullName | Move-Item -Destination $influxDir -Force
             Remove-Item $_.FullName -Force -ErrorAction SilentlyContinue
         }
-        # Add to system PATH
         $mp = [System.Environment]::GetEnvironmentVariable("Path","Machine")
         if ($mp -notlike "*InfluxData\influxdb*") {
             [System.Environment]::SetEnvironmentVariable("Path","$mp;$influxDir","Machine")
             $env:Path = "$env:Path;$influxDir"
         }
-        # Register as a Windows service with explicit data paths so it runs correctly as SYSTEM
-        $influxDataDir = "C:\ProgramData\InfluxDB"
-        New-Item -ItemType Directory -Path $influxDataDir -Force | Out-Null
-        $influxBinPath = "`"$influxDir\influxd.exe`" --bolt-path `"$influxDataDir\influxd.bolt`" --engine-path `"$influxDataDir\engine`" --sqlite-path `"$influxDataDir\influxd.sqlite`""
-        New-Service -Name "influxdb" -DisplayName "InfluxDB" -BinaryPathName $influxBinPath -StartupType Automatic | Out-Null
-        Write-Host "  InfluxDB service registered with data dir $influxDataDir."
+        Write-Host "  InfluxDB extracted to $influxDir."
+    } else {
+        Write-Host "  InfluxDB binary already present."
     }
+
+    # Always ensure data directory exists and service has correct binary path
+    New-Item -ItemType Directory -Path $influxDataDir -Force | Out-Null
+    $influxBinPath = "`"$influxDir\influxd.exe`" --bolt-path `"$influxDataDir\influxd.bolt`" --engine-path `"$influxDataDir\engine`" --sqlite-path `"$influxDataDir\influxd.sqlite`""
+
+    $existingSvc = Get-Service influxdb -ErrorAction SilentlyContinue
+    if ($existingSvc) {
+        Write-Host "  InfluxDB service exists - deleting and recreating with correct data paths."
+        Stop-Service influxdb -Force -ErrorAction SilentlyContinue
+        & sc.exe delete influxdb | Out-Null
+        Start-Sleep -Seconds 3
+    }
+    New-Service -Name "influxdb" -DisplayName "InfluxDB" -BinaryPathName $influxBinPath -StartupType Automatic | Out-Null
+    Write-Host "  InfluxDB service registered (data: $influxDataDir)."
 } catch {
     Write-Host "  ERROR installing InfluxDB: $_" -ForegroundColor Red
     throw
