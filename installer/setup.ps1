@@ -781,26 +781,11 @@ try {
 Write-Step "Step 18: Importing N2K Network Monitor dashboard"
 try {
     $dashboardFile = Join-Path $AppDir "dashboard-n2k-network-monitor.json"
-    $dashboardJson = Get-Content $dashboardFile -Raw | ConvertFrom-Json
-
-    $importBody = @{
-        dashboard = $dashboardJson
-        overwrite = $true
-        inputs    = @(
-            @{
-                name     = "DS_INFLUXDB"
-                type     = "datasource"
-                pluginId = "influxdb"
-                value    = $influxDsUid
-            },
-            @{
-                name     = "DS_SIGNALK"
-                type     = "datasource"
-                pluginId = "marcusolsson-json-datasource"
-                value    = $signalkDsUid
-            }
-        )
-    } | ConvertTo-Json -Depth 20 -Compress
+    # Read raw JSON string - avoids PS5.1 ConvertFrom-Json/ConvertTo-Json roundtrip
+    # which collapses single-element arrays to scalars and breaks Grafana validation
+    $dashboardRaw = (Get-Content $dashboardFile -Raw).Trim()
+    $inputsJson = '[{"name":"DS_INFLUXDB","type":"datasource","pluginId":"influxdb","value":"' + $influxDsUid + '"},{"name":"DS_SIGNALK","type":"datasource","pluginId":"marcusolsson-json-datasource","value":"' + $signalkDsUid + '"}]'
+    $importBody = '{"dashboard":' + $dashboardRaw + ',"overwrite":true,"inputs":' + $inputsJson + '}'
 
     $result = Invoke-GrafanaApi -Method "POST" -Path "/api/dashboards/import" -Body $importBody
     if ($result) {
@@ -816,26 +801,9 @@ try {
 Write-Step "Step 19: Importing Ethernet Monitor dashboard"
 try {
     $dashboardFile = Join-Path $AppDir "dashboard-ethernet-monitor.json"
-    $dashboardJson = Get-Content $dashboardFile -Raw | ConvertFrom-Json
-
-    $importBody = @{
-        dashboard = $dashboardJson
-        overwrite = $true
-        inputs    = @(
-            @{
-                name     = "DS_INFLUXDB"
-                type     = "datasource"
-                pluginId = "influxdb"
-                value    = $influxDsUid
-            },
-            @{
-                name     = "DS_SIGNALK"
-                type     = "datasource"
-                pluginId = "marcusolsson-json-datasource"
-                value    = $signalkDsUid
-            }
-        )
-    } | ConvertTo-Json -Depth 20 -Compress
+    $dashboardRaw = (Get-Content $dashboardFile -Raw).Trim()
+    $inputsJson = '[{"name":"DS_INFLUXDB","type":"datasource","pluginId":"influxdb","value":"' + $influxDsUid + '"},{"name":"DS_SIGNALK","type":"datasource","pluginId":"marcusolsson-json-datasource","value":"' + $signalkDsUid + '"}]'
+    $importBody = '{"dashboard":' + $dashboardRaw + ',"overwrite":true,"inputs":' + $inputsJson + '}'
 
     $result = Invoke-GrafanaApi -Method "POST" -Path "/api/dashboards/import" -Body $importBody
     if ($result) {
