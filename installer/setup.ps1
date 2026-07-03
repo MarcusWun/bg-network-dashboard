@@ -481,12 +481,24 @@ try {
 # ============================================================
 Write-Step "Step 8: Installing Signal K Server"
 try {
+    # npm.ps1 on Windows writes deprecation warnings to stderr which PS5 treats as
+    # errors under Stop preference -- temporarily relax for npm calls
+    $prevPref = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
     $skVersion = & npm list -g signalk-server --depth=0 2>&1
-    if ($LASTEXITCODE -eq 0 -and $skVersion -match "signalk-server") {
+    $skListExit = $LASTEXITCODE
+    $ErrorActionPreference = $prevPref
+
+    if ($skListExit -eq 0 -and ($skVersion | Out-String) -match "signalk-server") {
         Write-Host "  Signal K Server already installed."
     } else {
         Write-Host "  Installing signalk-server globally via npm..."
-        & npm install -g signalk-server 2>&1 | Out-Null
+        $prevPref = $ErrorActionPreference
+        $ErrorActionPreference = "Continue"
+        & npm install -g signalk-server 2>&1 | Where-Object { $_ -match "error" -and $_ -notmatch "warn" } | ForEach-Object { Write-Host "  $_" -ForegroundColor Yellow }
+        $npmExit = $LASTEXITCODE
+        $ErrorActionPreference = $prevPref
+        if ($npmExit -ne 0) { throw "npm install signalk-server failed (exit code $npmExit)" }
         Write-Host "  Signal K Server installed."
     }
 } catch {
