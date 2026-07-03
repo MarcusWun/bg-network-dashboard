@@ -163,10 +163,9 @@ try {
 }
 
 Write-Step "Phase 0: Installing InfluxDB 2.x"
+$influxDir = "C:\Program Files\InfluxData\influxdb"
+$influxDataDir = "C:\ProgramData\InfluxDB"
 try {
-    $influxDir = "C:\Program Files\InfluxData\influxdb"
-    $influxDataDir = "C:\ProgramData\InfluxDB"
-
     # Download and extract if influxd.exe is not present
     if (-not (Test-Path "$influxDir\influxd.exe")) {
         $influxZip = Join-Path $TmpDir "influxdb2-windows.zip"
@@ -186,22 +185,8 @@ try {
     } else {
         Write-Host "  InfluxDB binary already present."
     }
-
-    # Always ensure data directory exists and service has correct binary path
     New-Item -ItemType Directory -Path $influxDataDir -Force | Out-Null
-    $influxBinPath = "`"$influxDir\influxd.exe`" --bolt-path `"$influxDataDir\influxd.bolt`" --engine-path `"$influxDataDir\engine`" --sqlite-path `"$influxDataDir\influxd.sqlite`""
-
-    $existingSvc = Get-Service influxdb -ErrorAction SilentlyContinue
-    if ($existingSvc) {
-        Write-Host "  InfluxDB service exists - stopping and updating binary path."
-        Stop-Service influxdb -Force -ErrorAction SilentlyContinue
-        & sc.exe delete influxdb | Out-Null
-        Start-Sleep -Seconds 3
-    }
-    # New-Service -BinaryPathName silently drops arguments containing spaces; write ImagePath directly
-    New-Service -Name "influxdb" -DisplayName "InfluxDB" -BinaryPathName "$influxDir\influxd.exe" -StartupType Automatic | Out-Null
-    Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Services\influxdb' -Name 'ImagePath' -Value $influxBinPath
-    Write-Host "  InfluxDB service registered (data: $influxDataDir)."
+    # Service registration happens after NSSM is installed (influxd is not service-aware)
 } catch {
     Write-Host "  ERROR installing InfluxDB: $_" -ForegroundColor Red
     throw
@@ -311,11 +296,40 @@ if ($InstallWireshark) {
 }
 
 # ============================================================
+# Phase 0: Register InfluxDB as NSSM service
+# (must run after NSSM is installed; influxd.exe is not service-aware)
+# ============================================================
+Write-Step "Phase 0: Registering InfluxDB service via NSSM"
+try {
+    $nssmExe = "C:\nssm\nssm.exe"
+    $existingSvc = Get-Service influxdb -ErrorAction SilentlyContinue
+    if ($existingSvc) {
+        Stop-Service influxdb -Force -ErrorAction SilentlyContinue
+        & sc.exe delete influxdb | Out-Null
+        Start-Sleep -Seconds 3
+        Write-Host "  Removed previous InfluxDB service registration."
+    }
+    if (Test-Path $nssmExe) {
+        & $nssmExe install influxdb "$influxDir\influxd.exe" | Out-Null
+        & $nssmExe set influxdb AppParameters "--bolt-path $influxDataDir\influxd.bolt --engine-path $influxDataDir\engine --sqlite-path $influxDataDir\influxd.sqlite" | Out-Null
+        & $nssmExe set influxdb DisplayName "InfluxDB" | Out-Null
+        & $nssmExe set influxdb Start SERVICE_DELAYED_AUTO_START | Out-Null
+        & $nssmExe set influxdb AppStdout "$influxDataDir\influxd.log" | Out-Null
+        & $nssmExe set influxdb AppStderr "$influxDataDir\influxd.log" | Out-Null
+        Write-Host "  InfluxDB service registered via NSSM (data: $influxDataDir)."
+    } else {
+        Write-Host "  WARNING: NSSM not found - InfluxDB will not start automatically." -ForegroundColor Yellow
+    }
+} catch {
+    Write-Host "  ERROR registering InfluxDB service: $_" -ForegroundColor Red
+    throw
+}
+
+# ============================================================
 # Step 1: Wait for InfluxDB
 # ============================================================
 Write-Step "Step 1: Waiting for InfluxDB service"
 try {
-    # Start the service if it's not running
     $influxSvc = Get-Service -Name "influxdb" -ErrorAction SilentlyContinue
     if ($influxSvc -and $influxSvc.Status -ne "Running") {
         Start-Service influxdb
