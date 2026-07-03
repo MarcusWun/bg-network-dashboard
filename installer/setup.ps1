@@ -78,7 +78,7 @@ function Invoke-GrafanaApi {
         [string]$Method,
         [string]$Path,
         [string]$Body = $null,
-        [string]$User = "marcuswunderlich",
+        [string]$User = "admin",
         [string]$Password = "sunfast3300",
         [int]$MaxRetries = 5
     )
@@ -894,7 +894,7 @@ Write-Host ""
 Write-Host "Grafana is also accessible from other devices on the GoFree network:"
 Write-Host "  http://192.168.1.253:3001"
 Write-Host ""
-Write-Host "Login: marcuswunderlich / sunfast3300" -ForegroundColor Green
+Write-Host "Login: admin / sunfast3300" -ForegroundColor Green
 Write-Host ""
 Write-Host "Next step: Power up the boat, then use VALUE-MAPPINGS.md to configure" -ForegroundColor Yellow
 Write-Host "           Grafana value mappings for NMEA 2000 device source addresses." -ForegroundColor Yellow
