@@ -166,7 +166,7 @@ Write-Step "Phase 0: Installing InfluxDB 2.x"
 $influxDir = "C:\Program Files\InfluxData\influxdb"
 $influxDataDir = "C:\ProgramData\InfluxDB"
 try {
-    # Download and extract if influxd.exe is not present
+    # Download and extract server (influxd.exe) if not present
     if (-not (Test-Path "$influxDir\influxd.exe")) {
         $influxZip = Join-Path $TmpDir "influxdb2-windows.zip"
         Get-Download "https://dl.influxdata.com/influxdb/releases/influxdb2-2.7.6-windows.zip" $influxZip
@@ -176,15 +176,32 @@ try {
             Get-ChildItem $_.FullName | Move-Item -Destination $influxDir -Force
             Remove-Item $_.FullName -Force -ErrorAction SilentlyContinue
         }
-        $mp = [System.Environment]::GetEnvironmentVariable("Path","Machine")
-        if ($mp -notlike "*InfluxData\influxdb*") {
-            [System.Environment]::SetEnvironmentVariable("Path","$mp;$influxDir","Machine")
-            $env:Path = "$env:Path;$influxDir"
-        }
-        Write-Host "  InfluxDB extracted to $influxDir."
+        Write-Host "  InfluxDB server extracted to $influxDir."
     } else {
-        Write-Host "  InfluxDB binary already present."
+        Write-Host "  InfluxDB server already present."
     }
+
+    # Download CLI (influx.exe) separately - shipped independently from server in 2.7+
+    if (-not (Test-Path "$influxDir\influx.exe")) {
+        $influxCliZip = Join-Path $TmpDir "influxdb2-client-windows.zip"
+        Get-Download "https://dl.influxdata.com/influxdb/releases/influxdb2-client-2.7.5-windows-amd64.zip" $influxCliZip
+        $influxCliTmp = Join-Path $TmpDir "influxdb2-client-extracted"
+        Expand-Archive -Path $influxCliZip -DestinationPath $influxCliTmp -Force
+        Get-ChildItem $influxCliTmp -Recurse -Filter "influx.exe" | Select-Object -First 1 | Move-Item -Destination $influxDir -Force
+        Remove-Item $influxCliTmp -Recurse -Force -ErrorAction SilentlyContinue
+        Write-Host "  InfluxDB CLI extracted to $influxDir."
+    } else {
+        Write-Host "  InfluxDB CLI already present."
+    }
+
+    # Add to machine PATH if not there, and always refresh current session PATH
+    $mp = [System.Environment]::GetEnvironmentVariable("Path","Machine")
+    if ($mp -notlike "*InfluxData\influxdb*") {
+        [System.Environment]::SetEnvironmentVariable("Path","$mp;$influxDir","Machine")
+    }
+    # Always refresh session PATH so influx.exe is callable in this run
+    $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
+
     New-Item -ItemType Directory -Path $influxDataDir -Force | Out-Null
     # Service registration happens after NSSM is installed (influxd is not service-aware)
 } catch {
