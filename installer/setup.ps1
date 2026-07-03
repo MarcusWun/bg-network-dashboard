@@ -193,12 +193,14 @@ try {
 
     $existingSvc = Get-Service influxdb -ErrorAction SilentlyContinue
     if ($existingSvc) {
-        Write-Host "  InfluxDB service exists - deleting and recreating with correct data paths."
+        Write-Host "  InfluxDB service exists - stopping and updating binary path."
         Stop-Service influxdb -Force -ErrorAction SilentlyContinue
         & sc.exe delete influxdb | Out-Null
         Start-Sleep -Seconds 3
     }
-    New-Service -Name "influxdb" -DisplayName "InfluxDB" -BinaryPathName $influxBinPath -StartupType Automatic | Out-Null
+    # New-Service -BinaryPathName silently drops arguments containing spaces; write ImagePath directly
+    New-Service -Name "influxdb" -DisplayName "InfluxDB" -BinaryPathName "$influxDir\influxd.exe" -StartupType Automatic | Out-Null
+    Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Services\influxdb' -Name 'ImagePath' -Value $influxBinPath
     Write-Host "  InfluxDB service registered (data: $influxDataDir)."
 } catch {
     Write-Host "  ERROR installing InfluxDB: $_" -ForegroundColor Red
