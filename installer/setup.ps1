@@ -609,7 +609,7 @@ if (Test-Path $nssmPath) {
             & $nssmPath install signalk $nodePath
             & $nssmPath set signalk AppDirectory $skConfigDir
             & $nssmPath set signalk AppParameters "$npmGlobalDir --config $skConfigDir"
-            & $nssmPath set signalk Start SERVICE_DELAYED_AUTO_START
+            & $nssmPath set signalk Start SERVICE_DEMAND_START
             & $nssmPath set signalk AppStdout (Join-Path $skConfigDir "signalk.log")
             & $nssmPath set signalk AppStderr (Join-Path $skConfigDir "signalk.log")
             Write-Host "  Signal K service installed via NSSM."
@@ -628,7 +628,7 @@ if (Test-Path $nssmPath) {
             $signalkScript = "$env:APPDATA\npm\node_modules\signalk-server\bin\signalk-server"
             if (Test-Path $signalkScript) {
                 $svcBin = "`"$nodePath`" `"$signalkScript`" --config `"$skConfigDir`""
-                & sc.exe create signalk binPath= $svcBin start= delayed-auto DisplayName= "Signal K Server" | Out-Null
+                & sc.exe create signalk binPath= $svcBin start= demand DisplayName= "Signal K Server" | Out-Null
                 Write-Host "  Signal K service registered via sc.exe."
             } else {
                 Write-Host "  WARNING: signalk-server not found at $signalkScript" -ForegroundColor Yellow
