@@ -802,7 +802,8 @@ Write-Step "Step 19: Importing Ethernet Monitor dashboard"
 try {
     $dashboardFile = Join-Path $AppDir "dashboard-ethernet-monitor.json"
     $dashboardRaw = (Get-Content $dashboardFile -Raw).Trim()
-    $inputsJson = '[{"name":"DS_INFLUXDB","type":"datasource","pluginId":"influxdb","value":"' + $influxDsUid + '"},{"name":"DS_SIGNALK","type":"datasource","pluginId":"marcusolsson-json-datasource","value":"' + $signalkDsUid + '"}]'
+    # Ethernet dashboard only uses InfluxDB - DS_SIGNALK not referenced in any panel
+    $inputsJson = '[{"name":"DS_INFLUXDB","type":"datasource","pluginId":"influxdb","value":"' + $influxDsUid + '"}]'
     $importBody = '{"dashboard":' + $dashboardRaw + ',"overwrite":true,"inputs":' + $inputsJson + '}'
 
     $result = Invoke-GrafanaApi -Method "POST" -Path "/api/dashboards/import" -Body $importBody

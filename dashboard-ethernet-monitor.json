@@ -7,14 +7,6 @@
       "pluginId": "influxdb",
       "pluginName": "InfluxDB",
       "type": "datasource"
-    },
-    {
-      "description": "Signal K REST API via JSON API datasource plugin",
-      "label": "SignalK",
-      "name": "DS_SIGNALK",
-      "pluginId": "marcusolsson-json-datasource",
-      "pluginName": "JSON API",
-      "type": "datasource"
     }
   ],
   "__requires": [
@@ -27,12 +19,6 @@
     {
       "id": "influxdb",
       "name": "InfluxDB",
-      "type": "datasource",
-      "version": "1.0.0"
-    },
-    {
-      "id": "marcusolsson-json-datasource",
-      "name": "JSON API",
       "type": "datasource",
       "version": "1.0.0"
     },
