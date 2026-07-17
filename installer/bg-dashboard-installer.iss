@@ -32,6 +32,7 @@ Source: "..\dashboard-ethernet-monitor.json"; DestDir: "{app}"; Flags: ignorever
 Source: "..\VALUE-MAPPINGS.md"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\INSTALL.md"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\SERVICES.md"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\service-controller.js"; DestDir: "{app}"; Flags: ignoreversion
 Source: "setup.ps1"; DestDir: "{app}\installer"; Flags: ignoreversion
 Source: "launch.cmd"; DestDir: "{app}\installer"; Flags: ignoreversion
 

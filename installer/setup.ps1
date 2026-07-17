@@ -662,6 +662,45 @@ try {
 }
 
 # ============================================================
+# Step 13b: Install service-controller as auto-start service
+# ============================================================
+Write-Step "Step 13b: Installing service controller"
+try {
+    $scScript = Join-Path $AppDir "service-controller.js"
+    $scDir    = "C:\bg-service-controller"
+    $scDest   = "$scDir\service-controller.js"
+    $nodePath = (Get-Command node -ErrorAction Stop).Source
+
+    New-Item -ItemType Directory -Path $scDir -Force | Out-Null
+    Copy-Item $scScript $scDest -Force
+
+    $existingSvc = Get-Service -Name "bg-service-controller" -ErrorAction SilentlyContinue
+    if ($existingSvc) {
+        Write-Host "  Service controller already registered  -  updating script file."
+    } elseif (Test-Path $nssmPath) {
+        & $nssmPath install bg-service-controller $nodePath
+        & $nssmPath set bg-service-controller AppDirectory $scDir
+        & $nssmPath set bg-service-controller AppParameters $scDest
+        & $nssmPath set bg-service-controller Start SERVICE_AUTO_START
+        & $nssmPath set bg-service-controller AppStdout "$scDir\service-controller.log"
+        & $nssmPath set bg-service-controller AppStderr "$scDir\service-controller.log"
+        Write-Host "  Service controller registered (auto-start, port 9998)."
+    } else {
+        Write-Host "  WARNING: NSSM not found  -  skipping service controller service registration." -ForegroundColor Yellow
+    }
+
+    $svc = Get-Service -Name "bg-service-controller" -ErrorAction SilentlyContinue
+    if ($svc -and $svc.Status -ne "Running") {
+        Start-Service bg-service-controller
+        Write-Host "  Service controller started."
+    } elseif ($svc) {
+        Write-Host "  Service controller already running."
+    }
+} catch {
+    Write-Host "  WARNING: Could not install service controller: $_" -ForegroundColor Yellow
+}
+
+# ============================================================
 # Step 14: Wait for Grafana
 # ============================================================
 Write-Step "Step 14: Waiting for Grafana service"
@@ -820,7 +859,7 @@ try {
 Write-Step "Step 20: Starting all services"
 
 $grafanaSvcNameFinal = @("GrafanaLabs.Grafana","Grafana") | Where-Object { Get-Service $_ -ErrorAction SilentlyContinue } | Select-Object -First 1
-$services = @("influxdb", "telegraf", "signalk", $grafanaSvcNameFinal) | Where-Object { $_ }
+$services = @("influxdb", "telegraf", "signalk", "bg-service-controller", $grafanaSvcNameFinal) | Where-Object { $_ }
 foreach ($svc in $services) {
     try {
         $service = Get-Service -Name $svc -ErrorAction SilentlyContinue

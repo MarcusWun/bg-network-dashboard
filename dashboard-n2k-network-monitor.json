@@ -82,7 +82,32 @@
   "fiscalYearStartMonth": 0,
   "graphTooltip": 1,
   "id": null,
-  "links": [],
+  "links": [
+    {
+      "asDropdown": false,
+      "icon": "external link",
+      "includeVars": false,
+      "keepTime": false,
+      "tags": [],
+      "targetBlank": true,
+      "title": "Start Signal K",
+      "tooltip": "Start Signal K service and connect to NGT-1 on COM3",
+      "type": "link",
+      "url": "http://localhost:9998/signalk/start"
+    },
+    {
+      "asDropdown": false,
+      "icon": "external link",
+      "includeVars": false,
+      "keepTime": false,
+      "tags": [],
+      "targetBlank": true,
+      "title": "Stop Signal K",
+      "tooltip": "Stop Signal K service and release COM3 for Expedition or the Race Logger",
+      "type": "link",
+      "url": "http://localhost:9998/signalk/stop"
+    }
+  ],
   "panels": [
     {
       "collapsed": false,
