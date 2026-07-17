@@ -501,6 +501,24 @@ try {
         if ($npmExit -ne 0) { throw "npm install signalk-server failed (exit code $npmExit)" }
         Write-Host "  Signal K Server installed."
     }
+
+    # Install the InfluxDB v2 plugin into the Signal K config directory so that
+    # the settings.json plugin configuration is actually loaded on startup.
+    Write-Host "  Installing signalk-to-influxdb2 plugin..."
+    $skConfigDir = Join-Path $env:APPDATA "signalk-server"
+    New-Item -ItemType Directory -Path $skConfigDir -Force | Out-Null
+    $prevPref = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    Push-Location $skConfigDir
+    & npm install signalk-to-influxdb2 2>&1 | Where-Object { $_ -match "error" -and $_ -notmatch "warn" } | ForEach-Object { Write-Host "  $_" -ForegroundColor Yellow }
+    $pluginExit = $LASTEXITCODE
+    Pop-Location
+    $ErrorActionPreference = $prevPref
+    if ($pluginExit -ne 0) {
+        Write-Host "  WARNING: signalk-to-influxdb2 install exited with code $pluginExit — will retry after Signal K first run." -ForegroundColor Yellow
+    } else {
+        Write-Host "  signalk-to-influxdb2 plugin installed."
+    }
 } catch {
     Write-Host "  ERROR: $($_.Exception.Message)" -ForegroundColor Red
     throw
