@@ -504,18 +504,17 @@ try {
 
     # Install the InfluxDB v2 plugin into the Signal K config directory so that
     # the settings.json plugin configuration is actually loaded on startup.
+    # Use npm.cmd (not npm.ps1) to avoid PowerShell execution policy restrictions.
     Write-Host "  Installing signalk-to-influxdb2 plugin..."
     $skConfigDir = Join-Path $env:APPDATA "signalk-server"
     New-Item -ItemType Directory -Path $skConfigDir -Force | Out-Null
-    $prevPref = $ErrorActionPreference
-    $ErrorActionPreference = "Continue"
-    Push-Location $skConfigDir
-    & npm install signalk-to-influxdb2 2>&1 | Where-Object { $_ -match "error" -and $_ -notmatch "warn" } | ForEach-Object { Write-Host "  $_" -ForegroundColor Yellow }
+    $npmCmd = (Get-Command npm.cmd -ErrorAction SilentlyContinue)?.Source
+    if (-not $npmCmd) { $npmCmd = "npm.cmd" }
+    $pluginOutput = & cmd /c "cd /d `"$skConfigDir`" && `"$npmCmd`" install signalk-to-influxdb2 2>&1"
     $pluginExit = $LASTEXITCODE
-    Pop-Location
-    $ErrorActionPreference = $prevPref
+    $pluginOutput | Where-Object { $_ -match "error" -and $_ -notmatch "warn" } | ForEach-Object { Write-Host "  $_" -ForegroundColor Yellow }
     if ($pluginExit -ne 0) {
-        Write-Host "  WARNING: signalk-to-influxdb2 install exited with code $pluginExit — will retry after Signal K first run." -ForegroundColor Yellow
+        Write-Host "  WARNING: signalk-to-influxdb2 install exited with code $pluginExit" -ForegroundColor Yellow
     } else {
         Write-Host "  signalk-to-influxdb2 plugin installed."
     }
