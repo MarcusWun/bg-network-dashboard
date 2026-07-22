@@ -506,14 +506,16 @@ try {
     # directory so Signal K can discover it on startup.
     # Signal K (globally installed) looks for plugins inside its own node_modules,
     # NOT in the config/home directory (%APPDATA%\signalk-server).
-    # Use npm.cmd via cmd /c to avoid PowerShell execution policy restrictions.
     Write-Host "  Installing signalk-to-influxdb2 plugin..."
     $skModuleDir = Join-Path $env:APPDATA "npm\node_modules\signalk-server"
     if (-not (Test-Path $skModuleDir)) {
         Write-Host "  WARNING: signalk-server module dir not found at $skModuleDir — plugin install skipped." -ForegroundColor Yellow
     } else {
-        $pluginOutput = & cmd /c "cd /d `"$skModuleDir`" && npm.cmd install signalk-to-influxdb2 2>&1"
+        # Push-Location avoids cmd /c + && which confuses the PS 5.1 tokenizer
+        Push-Location $skModuleDir
+        $pluginOutput = & npm.cmd install signalk-to-influxdb2 2>&1
         $pluginExit = $LASTEXITCODE
+        Pop-Location
         $pluginOutput | Where-Object { $_ -match "error" -and $_ -notmatch "warn" } | ForEach-Object { Write-Host "  $_" -ForegroundColor Yellow }
         if ($pluginExit -ne 0) {
             Write-Host "  WARNING: signalk-to-influxdb2 install exited with code $pluginExit" -ForegroundColor Yellow
