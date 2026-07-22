@@ -509,7 +509,7 @@ try {
     Write-Host "  Installing signalk-to-influxdb2 plugin..."
     $skModuleDir = Join-Path $env:APPDATA "npm\node_modules\signalk-server"
     if (-not (Test-Path $skModuleDir)) {
-        Write-Host "  WARNING: signalk-server module dir not found at $skModuleDir — plugin install skipped." -ForegroundColor Yellow
+        Write-Host "  WARNING: signalk-server module dir not found at $skModuleDir - plugin install skipped." -ForegroundColor Yellow
     } else {
         # Push-Location avoids cmd /c + && which confuses the PS 5.1 tokenizer
         Push-Location $skModuleDir
