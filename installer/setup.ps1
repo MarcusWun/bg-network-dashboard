@@ -101,11 +101,24 @@ function Invoke-GrafanaApi {
                 UseBasicParsing = $true
             }
             if ($Body) {
-                $params["Body"] = $Body
+                $params["Body"] = [System.Text.Encoding]::UTF8.GetBytes($Body)
+                $params["ContentType"] = "application/json; charset=utf-8"
             }
             $response = Invoke-RestMethod @params
             return $response
         } catch {
+            # Don't retry on 4xx client errors - these are permanent failures
+            $statusCode = 0
+            if ($_.Exception.Response) {
+                $statusCode = [int]$_.Exception.Response.StatusCode
+            }
+            if ($statusCode -ge 400 -and $statusCode -lt 500) {
+                $detail = $_.ErrorDetails.Message
+                if (-not $detail) { $detail = $_.Exception.Message }
+                Write-Host "  WARNING: Grafana API returned HTTP $statusCode for: $Path" -ForegroundColor Yellow
+                Write-Host "  Error: $detail" -ForegroundColor Yellow
+                return $null
+            }
             $attempt++
             if ($attempt -ge $MaxRetries) {
                 Write-Host "  WARNING: Grafana API call failed after $MaxRetries attempts: $Path" -ForegroundColor Yellow
@@ -844,7 +857,7 @@ try {
     $dashboardFile = Join-Path $AppDir "dashboard-n2k-network-monitor.json"
     # Read raw JSON string - avoids PS5.1 ConvertFrom-Json/ConvertTo-Json roundtrip
     # which collapses single-element arrays to scalars and breaks Grafana validation
-    $dashboardRaw = (Get-Content $dashboardFile -Raw).Trim()
+    $dashboardRaw = (Get-Content $dashboardFile -Raw -Encoding UTF8).Trim()
     $inputsJson = '[{"name":"DS_INFLUXDB","type":"datasource","pluginId":"influxdb","value":"' + $influxDsUid + '"},{"name":"DS_SIGNALK","type":"datasource","pluginId":"marcusolsson-json-datasource","value":"' + $signalkDsUid + '"}]'
     $importBody = '{"dashboard":' + $dashboardRaw + ',"overwrite":true,"inputs":' + $inputsJson + '}'
 
@@ -862,7 +875,7 @@ try {
 Write-Step "Step 19: Importing Ethernet Monitor dashboard"
 try {
     $dashboardFile = Join-Path $AppDir "dashboard-ethernet-monitor.json"
-    $dashboardRaw = (Get-Content $dashboardFile -Raw).Trim()
+    $dashboardRaw = (Get-Content $dashboardFile -Raw -Encoding UTF8).Trim()
     # Ethernet dashboard only uses InfluxDB - DS_SIGNALK not referenced in any panel
     $inputsJson = '[{"name":"DS_INFLUXDB","type":"datasource","pluginId":"influxdb","value":"' + $influxDsUid + '"}]'
     $importBody = '{"dashboard":' + $dashboardRaw + ',"overwrite":true,"inputs":' + $inputsJson + '}'
